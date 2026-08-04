@@ -1,0 +1,16 @@
+# Build artifacts.  These were committed historically; stale object files
+# defeat make's dependency check and cause it to link a prebuilt binary of
+# the wrong architecture instead of recompiling.
+*.o
+*.o30
+*.o40
+pdb2pov
+
+# Editor backups
+*~
+
+# Generated scenes and renders
+*.pov
+!crambin.pov
+*.png
+*.tga

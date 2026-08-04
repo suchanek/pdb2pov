@@ -39,6 +39,11 @@ genuinely harmless.
 
 Both `-O` and `-O0` produce a working binary.
 
+> Object files and a prebuilt binary used to be committed here. They have been
+> removed: `make` treated the stale `.o` files as current and linked them
+> instead of recompiling, so a fresh clone silently produced a binary of the
+> wrong architecture.
+
 ---
 
 ## Usage
