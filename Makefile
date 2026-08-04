@@ -28,13 +28,37 @@ DEBUG = -g
 DELETE=rm
 
 #
+# Portability flags for modern (64-bit, C23-default) toolchains.
+#
+# 2026: the 1993 sources build and run unmodified given these.
+#
+#   -include ./pdb2pov_protos.h
+#       pdb2pov.c calls the allocators in util.c without declaring them.  K&R
+#       rules then assume they return int, truncating their pointers on a
+#       64-bit host -- an immediate segfault.  See pdb2pov_protos.h.
+#   -include stdlib.h
+#       the non-AMIGA include path omits it, so malloc() is truncated the
+#       same way.
+#   -D_FORTIFY_SOURCE=0 -fno-stack-protector
+#       modern libc traps sprintf() overruns that were benign in 1993.
+#   -std=gnu89 -Wno-implicit-function-declaration
+#       K&R definitions, and in-file helpers used before declaration.  Those
+#       all return int, so the implicit declarations are genuinely harmless.
+#
+# The -Wno- options are clang spelling; harmless under gcc.
+#
+PORTFLAGS = -std=gnu89 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 -fno-stack-protector \
+	    -include stdlib.h -include string.h -include ./pdb2pov_protos.h \
+	    -Wno-implicit-function-declaration -Wno-deprecated-non-prototype
+
+#
 # The cflags for compiling pdb2pov under UNIX hosts
 #
 
 
 CC = cc
 OPT = -O
-CFLAGS = $(OPT) -c 
+CFLAGS = $(OPT) $(PORTFLAGS) -c
 
 
 #
@@ -75,8 +99,8 @@ VERS=119
 	texindex $*.fn
 
 P = pdb2povf/
-SRC = pdb2pov.c m68040.c asyncio.c util.c pdb2light.h pdb2pov_errors.h pdb2pov_usage.h
-HEADERS = pdb2light.h pdb2pov_errors.h pdb2pov_usage.h
+SRC = pdb2pov.c m68040.c asyncio.c util.c pdb2light.h pdb2pov_errors.h pdb2pov_usage.h pdb2pov_protos.h
+HEADERS = pdb2light.h pdb2pov_errors.h pdb2pov_usage.h pdb2pov_protos.h
 SAMPLES = crambin.pdb crambin.pov
 INCLUDE_T = atoms2.inc atoms_cpk.inc atoms_vdw.inc atoms_covalent.inc atoms_glass2.inc
 
