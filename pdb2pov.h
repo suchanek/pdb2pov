@@ -15,7 +15,7 @@
 
 /* --- version ----------------------------------------------------------- */
 
-#define PDB2POV_VERSION "2.0"
+#define PDB2POV_VERSION "2.1"
 
 /*
  * POV-Ray language level the emitted scenes are written against.  3.7 is the
@@ -66,10 +66,12 @@
 
 /* --- buffer sizes ------------------------------------------------------- */
 
-#define PATH_MAX_LEN 1024 /* input/output paths, extension included */
+#define PATH_MAX_LEN 1024 /* input/output paths, extension included  */
 #define LINE_MAX_LEN 256  /* one record from a PDB or .atm file      */
 #define ATOM_NAME_LEN 5   /* PDB atom name field, plus terminator    */
 #define RES_NAME_LEN 5    /* PDB residue name field, plus terminator */
+#define ELEM_NAME_LEN 3   /* PDB element symbol, plus terminator     */
+#define CHAIN_FILTER_LEN 32 /* accepted chain IDs, as a string       */
 
 /* --- rendering options -------------------------------------------------- */
 
@@ -118,7 +120,32 @@ typedef struct {
     int ball_stick;   /* draw bond cylinders              */
     int glass_atoms;  /* overlay the glass-atom merge     */
     int area_light;   /* soft light instead of a point    */
+
+    /*
+     * Parser behaviour.  The defaults changed in 2.1; see read_pdb().
+     */
+    int legacy_elements; /* guess elements from atom names, pre-2.1 style */
+    int keep_altlocs;    /* keep every alternate conformation             */
+    char chain_filter[CHAIN_FILTER_LEN]; /* accepted chain IDs; "" = all  */
 } Options;
+
+/*
+ * What a parse discarded, so it can be reported rather than swallowed.  The
+ * 1993 code dropped atoms silently in three separate places.
+ */
+#define MAX_REPORTED_SYMBOLS 12
+
+typedef struct {
+    int accepted;
+    int skipped_altloc;
+    int skipped_chain;
+    int skipped_malformed;
+    int freeform_fallback; /* records whose columns would not parse */
+    int generic;           /* atoms with no dedicated texture       */
+    int no_element_column; /* records with columns 77-78 blank      */
+    char generic_symbols[MAX_REPORTED_SYMBOLS][ELEM_NAME_LEN];
+    int n_generic_symbols;
+} ParseStats;
 
 /* A parsed structure: coordinates plus the per-atom fields we keep. */
 typedef struct {
@@ -126,6 +153,7 @@ typedef struct {
     double **pos;     /* [natoms][3] */
     char **atom_name; /* [natoms][ATOM_NAME_LEN] */
     char **res_name;  /* [natoms][RES_NAME_LEN]  */
+    char **element;   /* [natoms][ELEM_NAME_LEN], upper case, "" if unknown */
     double *charge;   /* [natoms] */
     int *type;        /* [natoms], one of *_TYPE */
 } Structure;
@@ -141,9 +169,11 @@ typedef struct {
 
 /* pdb_io.c-equivalent routines, all still in pdb2pov.c */
 int count_pdb_atoms(const char *path);
-int read_pdb(const char *path, int max_atoms, Structure *s);
-int read_atm(const char *path, int max_atoms, Structure *s);
-void make_atom_types(Structure *s);
+int read_pdb(const char *path, int max_atoms, const Options *opt, Structure *s,
+             ParseStats *st);
+int read_atm(const char *path, int max_atoms, Structure *s, ParseStats *st);
+void make_atom_types(const Options *opt, Structure *s, ParseStats *st);
+void report_parse(const ParseStats *st, int legacy);
 
 /* geometry */
 void make_rotmat(double rotmat[3][3], double xdeg, double ydeg, double zdeg);

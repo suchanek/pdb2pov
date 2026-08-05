@@ -123,6 +123,54 @@ static int join_extension(char *dst, size_t dstsz, const char *stem,
     return 1;
 }
 
+/*
+ * Read the argument following argv[i] as a string, advancing i.
+ */
+static int take_string(int argc, char **argv, int *i, char *out, size_t outsz,
+                       const char *flag)
+{
+    int n;
+
+    if (*i + 1 >= argc) {
+        fprintf(stderr, "pdb2pov: %s requires a value\n", flag);
+        return 0;
+    }
+
+    n = snprintf(out, outsz, "%s", argv[++(*i)]);
+    if (n < 0 || (size_t)n >= outsz) {
+        fprintf(stderr, "pdb2pov: %s: value is too long\n", flag);
+        return 0;
+    }
+    return 1;
+}
+
+/*
+ * Long options carry the parser behaviour added in 2.1.  They are spelled out
+ * rather than given letters because the single-character space is full: -c is
+ * covalent radii and -a is the area light, so --chain and --keep-altlocs have
+ * nowhere obvious to go.
+ */
+static int parse_long_option(int argc, char **argv, int *i, Options *opt)
+{
+    const char *arg = argv[*i];
+
+    if (strcmp(arg, "--legacy-elements") == 0) {
+        opt->legacy_elements = 1;
+        return 1;
+    }
+    if (strcmp(arg, "--keep-altlocs") == 0) {
+        opt->keep_altlocs = 1;
+        return 1;
+    }
+    if (strcmp(arg, "--chain") == 0) {
+        return take_string(argc, argv, i, opt->chain_filter,
+                           sizeof opt->chain_filter, "--chain");
+    }
+
+    fprintf(stderr, "pdb2pov: unrecognised option '%s'\n", arg);
+    return 0;
+}
+
 static int parse_options(int argc, char **argv, Options *opt)
 {
     int i;
@@ -135,6 +183,12 @@ static int parse_options(int argc, char **argv, Options *opt)
     }
 
     for (i = 3; i < argc && argv[i][0] == '-'; i++) {
+        if (strncmp(argv[i], "--", 2) == 0) {
+            if (!parse_long_option(argc, argv, &i, opt))
+                return 0;
+            continue;
+        }
+
         switch (argv[i][1]) {
         case 'v':
         case 'V':
@@ -243,6 +297,120 @@ static int is_coordinate_record(const char *line)
            strncmp(line, "HETATM", 6) == 0 || strncmp(line, "hetatm", 6) == 0;
 }
 
+/*
+ * Copy a fixed PDB column range, trim surrounding blanks, and upper-case it.
+ * Returns the trimmed length.  PDB fields are blank-padded and some are
+ * right-justified (the element symbol) while others are not, so trimming both
+ * ends is the only thing that works across fields.
+ */
+static size_t field_text(const char *line, size_t len, size_t start,
+                         size_t width, char *out, size_t outsz, int upper)
+{
+    size_t i, n = 0;
+
+    out[0] = '\0';
+    if (start >= len)
+        return 0;
+    if (start + width > len)
+        width = len - start;
+
+    for (i = 0; i < width && n + 1 < outsz; i++) {
+        unsigned char c = (unsigned char)line[start + i];
+
+        if (c == '\n' || c == '\r')
+            break;
+        out[n++] = (char)(upper ? toupper(c) : c);
+    }
+    out[n] = '\0';
+
+    /* trim trailing blanks */
+    while (n > 0 && (out[n - 1] == ' ' || out[n - 1] == '\t'))
+        out[--n] = '\0';
+
+    /* trim leading blanks */
+    i = 0;
+    while (out[i] == ' ' || out[i] == '\t')
+        i++;
+    if (i > 0) {
+        memmove(out, out + i, n - i + 1);
+        n -= i;
+    }
+
+    return n;
+}
+
+/* Parse a fixed column range as a double.  Returns 0 if it is not a number. */
+static int field_double(const char *line, size_t len, size_t start,
+                        size_t width, double *out)
+{
+    char buf[32];
+    char *end;
+    double v;
+
+    if (field_text(line, len, start, width, buf, sizeof buf, 0) == 0)
+        return 0;
+
+    v = strtod(buf, &end);
+    if (end == buf || *end != '\0')
+        return 0;
+
+    *out = v;
+    return 1;
+}
+
+/*
+ * Map a PDB element symbol to one of the *_TYPE codes.  Returns ANY_TYPE for
+ * anything without a dedicated texture in atoms2.inc; such atoms render with
+ * the generic Atom_X rather than being dropped.
+ */
+static int element_to_type(const char *el)
+{
+    if (strcmp(el, "H") == 0 || strcmp(el, "D") == 0)
+        return H_TYPE; /* deuterium renders as hydrogen */
+    if (strcmp(el, "C") == 0)
+        return C_TYPE;
+    if (strcmp(el, "N") == 0)
+        return N_TYPE;
+    if (strcmp(el, "O") == 0)
+        return O_TYPE;
+    if (strcmp(el, "S") == 0)
+        return S_TYPE;
+    if (strcmp(el, "P") == 0)
+        return P_TYPE;
+    if (strcmp(el, "CA") == 0)
+        return CA_TYPE;
+    if (strcmp(el, "FE") == 0)
+        return FE_TYPE;
+    return ANY_TYPE;
+}
+
+/*
+ * The pre-2.1 element guess: look at the first one or two characters of the
+ * atom name.  Kept for --legacy-elements, and used as a fallback for files
+ * old enough to predate the element column.
+ *
+ * It is wrong for any two-letter element whose first letter collides with a
+ * one-letter element -- sodium reads as nitrogen, chlorine as carbon,
+ * fluorine as iron -- and it cannot tell a protein alpha carbon from calcium
+ * without the caller's help.
+ */
+static int guess_type_from_name(const char *name)
+{
+    int a = toupper((unsigned char)name[0]);
+    int b = toupper((unsigned char)name[1]);
+
+    switch (a) {
+    case 'H': return H_TYPE;
+    case 'C': return (b == 'A') ? CA_TYPE : C_TYPE;
+    case 'O': return O_TYPE;
+    case 'N': return N_TYPE;
+    case 'S': return S_TYPE;
+    case 'P': return P_TYPE;
+    case 'F': return FE_TYPE;
+    default:  return ANY_TYPE;
+    }
+}
+
 /* True for the records that terminate a coordinate section. */
 static int is_terminator(const char *line)
 {
@@ -290,7 +458,8 @@ int count_pdb_atoms(const char *path)
  * indexed linebuf[70] unconditionally once a record matched, reading past the
  * terminator on any line shorter than that -- which is most of them.
  */
-int read_pdb(const char *path, int max_atoms, Structure *s)
+int read_pdb(const char *path, int max_atoms, const Options *opt, Structure *s,
+             ParseStats *st)
 {
     char line[LINE_MAX_LEN];
     FILE *f;
@@ -306,42 +475,94 @@ int read_pdb(const char *path, int max_atoms, Structure *s)
            !is_terminator(line)) {
         size_t len = strlen(line);
         double charge;
+        char alt_loc, chain_id;
 
         if (!is_coordinate_record(line))
             continue;
 
         /* Coordinates start at column 31; anything shorter is not a record. */
-        if (len <= 30)
+        if (len <= 30) {
+            st->skipped_malformed++;
             continue;
+        }
 
-        if (sscanf(&line[12], " %3s", s->atom_name[n]) != 1)
+        /*
+         * Alternate conformations.  A residue modelled two ways contributes
+         * both sets of atoms, which renders as overlapping spheres plus
+         * spurious bonds between the A and B conformers.  Keep the blank and
+         * 'A' indicators only, unless asked otherwise.
+         */
+        alt_loc = (len > 16) ? line[16] : ' ';
+        if (!opt->keep_altlocs && alt_loc != ' ' && alt_loc != 'A' &&
+            alt_loc != 'a') {
+            st->skipped_altloc++;
             continue;
-        if (len <= 17 || sscanf(&line[17], "%3s", s->res_name[n]) != 1)
-            continue;
-        if (sscanf(&line[30], "%lf %lf %lf", &s->pos[n][X], &s->pos[n][Y],
-                   &s->pos[n][Z]) != 3)
-            continue;
+        }
 
+        chain_id = (len > 21) ? line[21] : ' ';
+        if (opt->chain_filter[0] != '\0' &&
+            strchr(opt->chain_filter, chain_id) == NULL) {
+            st->skipped_chain++;
+            continue;
+        }
+
+        /* Atom name, columns 13-16. */
+        if (field_text(line, len, 12, 4, s->atom_name[n], ATOM_NAME_LEN, 0) == 0) {
+            st->skipped_malformed++;
+            continue;
+        }
+
+        /* Residue name, columns 18-20.  Absence is tolerated. */
+        field_text(line, len, 17, 3, s->res_name[n], RES_NAME_LEN, 0);
+
+        /*
+         * Coordinates, columns 31-38 / 39-46 / 47-54.  Fixed columns are what
+         * the format actually specifies.  If a record does not honour them --
+         * hand-edited files exist -- fall back to the free-form scan the
+         * pre-2.1 parser used, so nothing that converted before stops
+         * converting now.
+         */
+        if (!field_double(line, len, 30, 8, &s->pos[n][X]) ||
+            !field_double(line, len, 38, 8, &s->pos[n][Y]) ||
+            !field_double(line, len, 46, 8, &s->pos[n][Z])) {
+            if (sscanf(&line[30], "%lf %lf %lf", &s->pos[n][X], &s->pos[n][Y],
+                       &s->pos[n][Z]) != 3) {
+                st->skipped_malformed++;
+                continue;
+            }
+            st->freeform_fallback++;
+        }
+
+        /* Element symbol, columns 77-78.  Blank on files that predate it. */
+        field_text(line, len, 76, 2, s->element[n], ELEM_NAME_LEN, 1);
+        if (s->element[n][0] == '\0')
+            st->no_element_column++;
+
+        /*
+         * The alpha-carbon hack, needed only when guessing from the name: in
+         * an ATOM record "CA" is C-alpha, not calcium.  Blanking the second
+         * character makes the guess read it as carbon.  With a real element
+         * column the distinction is free, so this is confined to the legacy
+         * path.
+         */
+        if ((opt->legacy_elements || s->element[n][0] == '\0') &&
+            strncmp(line, "ATOM", 4) == 0 &&
+            (strncmp(s->atom_name[n], "CA", 2) == 0 ||
+             strncmp(s->atom_name[n], "ca", 2) == 0))
+            s->atom_name[n][1] = ' ';
+
+        /* Non-standard trailing charge column, if present. */
         if (len > 70 && sscanf(&line[70], "%lf", &charge) == 1)
             s->charge[n] = charge;
         else
             s->charge[n] = 0.0;
-
-        /*
-         * Disambiguate the protein alpha carbon from calcium: within an ATOM
-         * record, "CA" is C-alpha.  Blanking the second character makes
-         * make_atom_types() read it as carbon.  A HETATM "CA" stays calcium.
-         */
-        if (strncmp(line, "ATOM", 4) == 0 &&
-            (strncmp(s->atom_name[n], "CA", 2) == 0 ||
-             strncmp(s->atom_name[n], "ca", 2) == 0))
-            s->atom_name[n][1] = ' ';
 
         n++;
     }
 
     fclose(f);
     s->natoms = n;
+    st->accepted = n;
     return n;
 }
 
@@ -349,7 +570,7 @@ int read_pdb(const char *path, int max_atoms, Structure *s)
  * Read the alternative .atm format:
  *   1 0x7042  Ca  0.0335223  5.4441102  0.0069856   20    0   sp    Ca    0x3
  */
-int read_atm(const char *path, int max_atoms, Structure *s)
+int read_atm(const char *path, int max_atoms, Structure *s, ParseStats *st)
 {
     char line[LINE_MAX_LEN];
     char flags[32];
@@ -367,61 +588,116 @@ int read_atm(const char *path, int max_atoms, Structure *s)
            !is_terminator(line)) {
         if (sscanf(line, "%d %31s %3s %lf %lf %lf", &atom_number, flags,
                    s->atom_name[n], &s->pos[n][X], &s->pos[n][Y],
-                   &s->pos[n][Z]) != 6)
+                   &s->pos[n][Z]) != 6) {
+            st->skipped_malformed++;
             continue;
+        }
 
         s->res_name[n][0] = '\0';
+        /* The .atm format has no element column; types come from the name. */
+        s->element[n][0] = '\0';
         s->charge[n] = 0.0;
         n++;
     }
 
     fclose(f);
     s->natoms = n;
+    st->accepted = n;
+    /* Not a defect for this format, so do not report it as one. */
+    st->no_element_column = 0;
     return n;
 }
 
+/* Record an element symbol that fell through to the generic texture. */
+static void note_generic_symbol(ParseStats *st, const char *el)
+{
+    int i;
+
+    if (el[0] == '\0')
+        el = "?";
+
+    for (i = 0; i < st->n_generic_symbols; i++) {
+        if (strcmp(st->generic_symbols[i], el) == 0)
+            return;
+    }
+
+    if (st->n_generic_symbols < MAX_REPORTED_SYMBOLS) {
+        snprintf(st->generic_symbols[st->n_generic_symbols], ELEM_NAME_LEN,
+                 "%s", el);
+        st->n_generic_symbols++;
+    }
+}
+
 /*
- * Map each atom name to one of the *_TYPE codes, which select a texture in
- * atoms2.inc.  Anything unrecognised becomes ANY_TYPE and is skipped by the
- * writer, exactly as before.
+ * Assign each atom one of the *_TYPE codes, which select a texture in
+ * atoms2.inc.
+ *
+ * The element column drives this by default.  Before 2.1 the type was guessed
+ * from the atom name, which mistyped every two-letter element sharing a first
+ * letter with a one-letter one (NA as nitrogen, CL as carbon, F as iron) and
+ * dropped the rest without a word.  --legacy-elements restores that.
+ *
+ * Anything with no dedicated texture is ANY_TYPE and renders as the generic
+ * Atom_X, so an unrecognised element can no longer vanish from a scene.
  */
-void make_atom_types(Structure *s)
+void make_atom_types(const Options *opt, Structure *s, ParseStats *st)
 {
     int i;
 
     for (i = 0; i < s->natoms; i++) {
-        int a = toupper((unsigned char)s->atom_name[i][0]);
-        int b = toupper((unsigned char)s->atom_name[i][1]);
         int type;
 
-        switch (a) {
-        case 'H':
-            type = H_TYPE;
-            break;
-        case 'C':
-            type = (b == 'A') ? CA_TYPE : C_TYPE;
-            break;
-        case 'O':
-            type = O_TYPE;
-            break;
-        case 'N':
-            type = N_TYPE;
-            break;
-        case 'S':
-            type = S_TYPE;
-            break;
-        case 'P':
-            type = P_TYPE;
-            break;
-        case 'F':
-            type = FE_TYPE;
-            break;
-        default:
-            type = ANY_TYPE;
-            break;
-        }
+        if (opt->legacy_elements || s->element[i][0] == '\0')
+            type = guess_type_from_name(s->atom_name[i]);
+        else
+            type = element_to_type(s->element[i]);
 
         s->type[i] = type;
+
+        if (type == ANY_TYPE) {
+            st->generic++;
+            /*
+             * Report the element symbol when there is one; otherwise the atom
+             * name is the only identifying thing the record carried.
+             */
+            note_generic_symbol(st, s->element[i][0] != '\0' && !opt->legacy_elements
+                                        ? s->element[i]
+                                        : s->atom_name[i]);
+        }
+    }
+}
+
+/* Say what the parse discarded or had to guess at. */
+void report_parse(const ParseStats *st, int legacy)
+{
+    int i;
+
+    if (st->skipped_altloc)
+        printf("  %d atom(s) in alternate conformations skipped "
+               "(--keep-altlocs to keep them)\n", st->skipped_altloc);
+    if (st->skipped_chain)
+        printf("  %d atom(s) outside the requested chain(s) skipped\n",
+               st->skipped_chain);
+    if (st->skipped_malformed)
+        printf("  %d unparseable coordinate record(s) skipped\n",
+               st->skipped_malformed);
+    if (st->freeform_fallback)
+        printf("  %d record(s) did not honour the PDB column layout; "
+               "read free-form\n", st->freeform_fallback);
+    if (st->no_element_column)
+        printf("  %d record(s) have no element column; guessed from the atom "
+               "name\n", st->no_element_column);
+
+    if (st->generic) {
+        printf("  %d atom(s) have no dedicated texture and %s (",
+               st->generic,
+               legacy ? "are dropped (--legacy-elements)"
+                      : "render as Atom_X");
+        for (i = 0; i < st->n_generic_symbols; i++)
+            printf("%s%s", i ? ", " : "", st->generic_symbols[i]);
+        if (st->n_generic_symbols == MAX_REPORTED_SYMBOLS)
+            printf(", ...");
+        printf(")\n");
     }
 }
 
@@ -570,9 +846,16 @@ double compute_sphere(const Structure *s)
 /* Bonds                                                              */
 /* ------------------------------------------------------------------ */
 
-static int is_hydrogen(const char *name)
+/*
+ * Hydrogen test for the bonding rules below.  This reads the assigned type
+ * rather than the atom name, so an element whose symbol merely starts with H
+ * -- mercury, hafnium, helium -- is no longer capped at one bond.  Under
+ * --legacy-elements the type still comes from the name, so behaviour there is
+ * unchanged.
+ */
+static int is_hydrogen(const Structure *s, int i)
 {
-    return name[0] == 'H' || name[0] == 'h';
+    return s->type[i] == H_TYPE;
 }
 
 /*
@@ -600,7 +883,7 @@ int find_bonds(const Structure *s, double threshold, int max_bonds,
             double dx, dy, dz, dxy;
 
             /* Never bond hydrogens to each other. */
-            if (is_hydrogen(s->atom_name[i]) && is_hydrogen(s->atom_name[j]))
+            if (is_hydrogen(s, i) && is_hydrogen(s, j))
                 continue;
 
             dx = fabs(s->pos[i][X] - s->pos[j][X]);
@@ -626,7 +909,7 @@ int find_bonds(const Structure *s, double threshold, int max_bonds,
             }
             nbonds++;
 
-            if (is_hydrogen(s->atom_name[i]))
+            if (is_hydrogen(s, i))
                 break; /* one bond per hydrogen */
         }
     }
@@ -679,7 +962,12 @@ static const char *atom_object_name(int type, int glass)
     case S_TYPE:  return glass ? "Atom_Glass_S"  : "Atom_S";
     case CA_TYPE: return glass ? "Atom_Glass_Ca" : "Atom_Ca";
     case FE_TYPE: return glass ? "Atom_Glass_Fe" : "Atom_Fe";
-    default:      return NULL;
+    /*
+     * Generic fallback.  Before 2.1 this returned NULL and the atom was
+     * dropped without a message, so an ion could disappear from a scene while
+     * the header atom count still looked right.
+     */
+    default:      return glass ? "Atom_Glass_X" : "Atom_X";
     }
 }
 
@@ -836,15 +1124,26 @@ static void write_check(FILE *f, const Extents *e)
     fprintf(f, "}\n\n");
 }
 
-/* Emit one merge/union member per atom, skipping types with no texture. */
-static void write_atoms(FILE *f, const Structure *s, const char *scale_id,
-                        int glass)
+/*
+ * Emit one merge/union member per atom.
+ *
+ * Under --legacy-elements an atom with no dedicated texture is dropped, which
+ * is what happened before 2.1; reproducing an old render means reproducing
+ * the omission too.  It is counted and reported either way, so the drop is no
+ * longer silent.  By default such atoms render as the generic Atom_X.
+ */
+static void write_atoms(FILE *f, const Structure *s, const Options *opt,
+                        const char *scale_id, int glass)
 {
     int i;
 
     for (i = 0; i < s->natoms; i++) {
-        const char *name = atom_object_name(s->type[i], glass);
+        const char *name;
 
+        if (opt->legacy_elements && s->type[i] == ANY_TYPE)
+            continue;
+
+        name = atom_object_name(s->type[i], glass);
         if (name == NULL)
             continue;
 
@@ -967,12 +1266,12 @@ int write_output(const Options *opt, const Structure *s, int **bonds,
     /* The glass shell, if asked for, is merged so interior faces vanish. */
     if (opt->glass_atoms) {
         fprintf(f, "#declare %s_obj_glass = merge {\n", ident);
-        write_atoms(f, s, "ATM_SCL_B", 1);
+        write_atoms(f, s, opt, "ATM_SCL_B", 1);
         fprintf(f, "}\n\n");
     }
 
     fprintf(f, "#declare %s_obj = union {\n", ident);
-    write_atoms(f, s, "ATM_SCL", 0);
+    write_atoms(f, s, opt, "ATM_SCL", 0);
 
     if (opt->ball_stick && bonds != NULL) {
         for (i = 0; i < nbonds; i++) {
@@ -1024,6 +1323,7 @@ int write_output(const Options *opt, const Structure *s, int **bonds,
 static void structure_free(Structure *s, int capacity)
 {
     free_ivector(s->type);
+    free_cmatrix(s->element, (size_t)capacity);
     free_cmatrix(s->res_name, (size_t)capacity);
     free_cmatrix(s->atom_name, (size_t)capacity);
     free_dvector(s->charge);
@@ -1039,10 +1339,11 @@ static int structure_alloc(Structure *s, int capacity)
     s->charge = dvector((size_t)capacity);
     s->atom_name = cmatrix((size_t)capacity, ATOM_NAME_LEN);
     s->res_name = cmatrix((size_t)capacity, RES_NAME_LEN);
+    s->element = cmatrix((size_t)capacity, ELEM_NAME_LEN);
     s->type = ivector((size_t)capacity);
 
     if (s->pos == NULL || s->charge == NULL || s->atom_name == NULL ||
-        s->res_name == NULL || s->type == NULL) {
+        s->res_name == NULL || s->element == NULL || s->type == NULL) {
         structure_free(s, capacity);
         return 0;
     }
@@ -1058,6 +1359,7 @@ int main(int argc, char **argv)
 {
     Options opt;
     Structure s;
+    ParseStats stats;
     double center[3];
     int **bonds = NULL;
     int nbonds = 0;
@@ -1066,6 +1368,8 @@ int main(int argc, char **argv)
 
     if (!parse_options(argc, argv, &opt))
         return -ERR_PARSE_ARGS;
+
+    memset(&stats, 0, sizeof stats);
 
     printf("Scanning atom file <%s>... ", opt.input_path);
     fflush(stdout);
@@ -1086,18 +1390,28 @@ int main(int argc, char **argv)
     }
 
     if (opt.atm_format)
-        status = read_atm(opt.input_path, capacity, &s);
+        status = read_atm(opt.input_path, capacity, &s, &stats);
     else
-        status = read_pdb(opt.input_path, capacity, &s);
+        status = read_pdb(opt.input_path, capacity, &opt, &s, &stats);
 
     if (status < 0 || s.natoms == 0) {
-        fprintf(stderr, "pdb2pov: couldn't read atoms from <%s>\n",
-                opt.input_path);
+        fflush(stdout); /* keep the diagnostic after the progress lines */
+        if (stats.skipped_chain > 0 && stats.accepted == 0)
+            fprintf(stderr,
+                    "pdb2pov: no atoms left after filtering to chain(s) "
+                    "'%s'\n", opt.chain_filter);
+        else
+            fprintf(stderr, "pdb2pov: couldn't read atoms from <%s>\n",
+                    opt.input_path);
         structure_free(&s, capacity);
         return -ERR_NO_ATOMS;
     }
 
-    make_atom_types(&s);
+    make_atom_types(&opt, &s, &stats);
+
+    if (s.natoms != capacity)
+        printf("Kept <%d> of <%d> atoms.\n", s.natoms, capacity);
+    report_parse(&stats, opt.legacy_elements);
 
     printf("Re-orienting and positioning structure.\n");
     rotate_structure(&s, opt.xrot, opt.yrot, opt.zrot);

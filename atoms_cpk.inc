@@ -14,3 +14,6 @@
 #declare CA_RAD = 1.274;
 #declare H_RAD  = 1.2;
 #declare FE_RAD = 2.0;
+
+/* Generic radius, for elements with no dedicated entry above. */
+#declare X_RAD  = 1.7;

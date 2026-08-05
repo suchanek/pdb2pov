@@ -2,7 +2,7 @@
 
 **Converts Brookhaven PDB atomic structure files into POV-Ray scenes.**
 
-pdb2pov 2.0 — Copyright (c) 1993-2026 Eric G. Suchanek, Ph.D.
+pdb2pov 2.1 — Copyright (c) 1993-2026 Eric G. Suchanek, Ph.D.
 Subject to the GNU License.
 
 Written in 1993 for the Amiga and UNIX. Modernised in 2026: the sources are
@@ -67,6 +67,9 @@ bond cutoff.
 | `-h` | checkered ground |
 | `-a` | area light instead of a point light |
 | `-x -y -z` | absolute rotation about each axis, in degrees |
+| `--chain IDS` | restrict to the given chain IDs, e.g. `--chain AB` |
+| `--keep-altlocs` | keep every alternate conformation |
+| `--legacy-elements` | guess elements from atom names, pre-2.1 style |
 
 Rendering styles depend on the bundled include files (`atoms2.inc`,
 `atoms_vdw.inc`, `atoms_covalent.inc`, `atoms_cpk.inc`, `atoms_glass2.inc`),
@@ -101,15 +104,56 @@ the parser was written against:
 awk '/^ATOM/ {print substr($0,1,21) " " substr($0,23)}' in.pdb > out.pdb
 ```
 
-Coordinates are read free-form from column 31 rather than by fixed field
-width. In practice this parses every valid PDB coordinate record: the format
-writes coordinates as `%8.3f`, so adjacent fields either are separated by
-whitespace or the next one begins with a minus sign, and a minus sign
-terminates the preceding number for `scanf`. Records with columns running
-together — `-123.456-100.789  99.123` — parse correctly, and agree with
-Biopython's fixed-column reader. Only coordinates at or above 1000 Å would
-fill all eight columns with no sign and genuinely jam, which no molecular
-structure approaches.
+### What the parser does with a record
+
+Records are read by fixed PDB column ranges — atom name from 13–16, altLoc
+from 17, chain from 22, coordinates from 31–38 / 39–46 / 47–54, element from
+77–78. A record that does not honour those columns falls back to the
+free-form scan earlier versions used, and the fallback is reported, so
+nothing that converted before stops converting.
+
+**Elements come from columns 77–78.** Before 2.1 the element was guessed from
+the first one or two characters of the atom name, which is wrong for any
+two-letter element sharing a first letter with a one-letter one:
+
+| Record | Element | Pre-2.1 result | 2.1 |
+|--------|---------|----------------|-----|
+| `NA` | sodium | nitrogen | sodium → `Atom_X` |
+| `CL` | chlorine | carbon | chlorine → `Atom_X` |
+| `F` | fluorine | iron | fluorine → `Atom_X` |
+| `ZN` | zinc | *silently dropped* | zinc → `Atom_X` |
+| `CA` (ATOM) | carbon (Cα) | carbon | carbon |
+| `CA` (HETATM) | calcium | calcium | calcium |
+
+Files old enough to have no element column fall back to the name guess, and
+say so. The guess also required a special case to tell a protein alpha carbon
+from calcium; with a real element column that distinction is free, so the
+hack is now confined to the legacy path.
+
+**Elements with no dedicated texture render as `Atom_X`,** a neutral grey
+sphere, rather than disappearing. Only H, C, N, O, S, P, Ca and Fe have their
+own textures in `atoms2.inc`; before 2.1 everything else was dropped without a
+message, so an ion could vanish while the header atom count still looked
+right. The count and the symbols involved are now reported.
+
+**Alternate conformations are filtered.** Only the blank and `A` altLoc
+indicators are kept. Retaining all of them — the pre-2.1 behaviour — gives
+overlapping spheres at nearly identical positions plus spurious bonds between
+the A and B conformers; a 7-record two-conformer test file yields 7 atoms and
+13 bonds where the correct answer is 4 and 3. Use `--keep-altlocs` to keep
+them.
+
+**Hydrogen is identified by element, not by name.** The bonding rules cap
+hydrogens at one bond; previously any atom whose name began with `H` was
+capped, so mercury bridging two cysteines got one bond instead of two.
+
+`--legacy-elements` restores the whole pre-2.1 arrangement — name-based
+guessing, the alpha-carbon hack, name-based hydrogen detection, and dropping
+unrecognised elements — for reproducing the appearance of an existing render.
+The drop is reported rather than silent even then.
+
+Structures made only of H, C, N, O, S and P are unaffected by any of this.
+Crambin converts to byte-identical output before and after.
 
 ---
 
@@ -163,6 +207,27 @@ read it directly rather than scraping the comment:
 With `-o` the file is a `.inc` that saves and restores the language version
 around its own declarations, so including it will not switch the host scene
 to 3.7 behind your back.
+
+---
+
+## What changed in 2.1
+
+The parser moved from free-form scanning to the PDB column layout, and three
+behaviours that silently produced wrong scenes were corrected. See
+[What the parser does with a record](#what-the-parser-does-with-a-record)
+above for the detail; in brief:
+
+- Elements are read from columns 77–78 rather than guessed from the atom name.
+- Elements with no dedicated texture render as a generic grey `Atom_X`
+  instead of being dropped without a message.
+- Alternate conformations are filtered to the blank and `A` indicators.
+- Hydrogen is identified by element, so mercury is no longer bond-capped.
+- `--chain` restricts conversion to named chains.
+- The parse reports what it skipped, guessed at, or fell back on.
+
+`--legacy-elements` restores the pre-2.1 behaviour. Only structures
+containing elements beyond H, C, N, O, S and P, or carrying alternate
+conformations, render differently.
 
 ---
 

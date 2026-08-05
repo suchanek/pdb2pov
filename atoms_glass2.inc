@@ -139,4 +139,16 @@
     interior { my_glass_interior }
 }
 
+#declare Glass_X = texture {
+    pigment { color Gray50 filter 0.98 }
+    finish { my_glass_finish }
+}
+
+/* Generic atom; see the Atom_X note in atoms2.inc. */
+#declare Atom_Glass_X = sphere {
+    <0, 0, 0>, X_RAD
+    texture { Glass_X }
+    interior { my_glass_interior }
+}
+
 #version Atoms_Glass_Inc_Temp;

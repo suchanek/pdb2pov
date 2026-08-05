@@ -107,6 +107,20 @@
     }
 }
 
+/*
+ * Generic atom, for elements with no dedicated texture above.  pdb2pov 2.1
+ * and later route anything unrecognised here rather than dropping it, so an
+ * ion or an exotic heteroatom shows up as a neutral grey sphere instead of
+ * silently vanishing from the scene.
+ */
+#declare Atom_X = sphere {
+    <0, 0, 0>, X_RAD
+    texture {
+        finish { Shiny }
+        pigment { color Gray50 quick_color Gray50 }
+    }
+}
+
 /* Applied to the cylinders pdb2pov emits between bonded atoms. */
 #declare White_Bond = texture {
     finish { Shiny }

@@ -58,11 +58,25 @@ check: $(PROG)
 	./$(PROG) check_crambin check_crambin_vdw -v -p
 	./$(PROG) check_crambin check_crambin_bs -b -d 1.9 -p
 	./$(PROG) check_crambin check_crambin_obj -b -d 1.9 -o
+	./$(PROG) check_crambin check_crambin_leg -b -d 1.9 -p --legacy-elements
+	./$(PROG) check_crambin check_crambin_chn -b -d 1.9 -p --chain A
 	@echo "--- generated ---"
-	@ls -l check_crambin_vdw.pov check_crambin_bs.pov check_crambin_obj.inc
+	@ls -l check_crambin_*.pov check_crambin_obj.inc
+	@echo "--- crambin must be unaffected by the 2.1 parser changes ---"
+	@grep -v 'Prepared by' check_crambin_bs.pov \
+	   | sed 's/check_crambin_bs/N/g' > check_a.tmp
+	@grep -v 'Prepared by' check_crambin_leg.pov \
+	   | sed 's/check_crambin_leg/N/g' > check_b.tmp
+	@if diff check_a.tmp check_b.tmp > /dev/null; then \
+	  echo "OK: default and --legacy-elements agree on crambin"; \
+	  rm -f check_a.tmp check_b.tmp; \
+	else \
+	  echo "FAIL: crambin differs between default and --legacy-elements"; \
+	  rm -f check_a.tmp check_b.tmp; exit 1; \
+	fi
 
 clean:
 	rm -f $(OBJ)
 
 distclean: clean
-	rm -f $(PROG) check_crambin.pdb check_crambin_*.pov check_crambin_*.inc
+	rm -f $(PROG) check_crambin.pdb check_crambin_*.pov check_crambin_*.inc check_*.tmp

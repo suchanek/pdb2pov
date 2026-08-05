@@ -18,3 +18,4 @@ pdb2pov
 # 'make check' artefacts
 check_crambin.pdb
 check_crambin_*.inc
+check_*.tmp
