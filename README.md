@@ -102,9 +102,14 @@ awk '/^ATOM/ {print substr($0,1,21) " " substr($0,23)}' in.pdb > out.pdb
 ```
 
 Coordinates are read free-form from column 31 rather than by fixed field
-width, so a record whose columns run together without whitespace — possible
-with coordinates below -100 Å — will not parse. No structure that fits the
-1993 atom limits comes close to that range.
+width. In practice this parses every valid PDB coordinate record: the format
+writes coordinates as `%8.3f`, so adjacent fields either are separated by
+whitespace or the next one begins with a minus sign, and a minus sign
+terminates the preceding number for `scanf`. Records with columns running
+together — `-123.456-100.789  99.123` — parse correctly, and agree with
+Biopython's fixed-column reader. Only coordinates at or above 1000 Å would
+fill all eight columns with no sign and genuinely jam, which no molecular
+structure approaches.
 
 ---
 
