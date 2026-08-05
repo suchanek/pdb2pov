@@ -1,0 +1,39 @@
+REMARK   1 elements.pdb -- one atom of every element in pdb2pov's ELEMENTS table.
+REMARK   1 Laid out on a grid so a render shows the whole palette at once.
+REMARK   1 Used by 'make check' to prove the table in pdb2pov.c and the
+REMARK   1 declarations in atoms2.inc / atoms_glass2.inc / the radius includes
+REMARK   1 stay in step: a missing declaration fails the render loudly.
+HETATM    1 H    LIG A   1     -24.500  10.500   0.000  1.00  0.00           H
+HETATM    2 C    LIG A   2     -17.500  10.500   0.000  1.00  0.00           C
+HETATM    3 N    LIG A   3     -10.500  10.500   0.000  1.00  0.00           N
+HETATM    4 O    LIG A   4      -3.500  10.500   0.000  1.00  0.00           O
+HETATM    5 S    LIG A   5       3.500  10.500   0.000  1.00  0.00           S
+HETATM    6 P    LIG A   6      10.500  10.500   0.000  1.00  0.00           P
+HETATM    7 SE   LIG A   7      17.500  10.500   0.000  1.00  0.00          SE
+HETATM    8 F    LIG A   8      24.500  10.500   0.000  1.00  0.00           F
+HETATM    9 CL   LIG A   9     -24.500   3.500   0.000  1.00  0.00          CL
+HETATM   10 BR   LIG A  10     -17.500   3.500   0.000  1.00  0.00          BR
+HETATM   11 I    LIG A  11     -10.500   3.500   0.000  1.00  0.00           I
+HETATM   12 LI   LIG A  12      -3.500   3.500   0.000  1.00  0.00          LI
+HETATM   13 NA   LIG A  13       3.500   3.500   0.000  1.00  0.00          NA
+HETATM   14 K    LIG A  14      10.500   3.500   0.000  1.00  0.00           K
+HETATM   15 MG   LIG A  15      17.500   3.500   0.000  1.00  0.00          MG
+HETATM   16 CA   LIG A  16      24.500   3.500   0.000  1.00  0.00          CA
+HETATM   17 MN   LIG A  17     -24.500  -3.500   0.000  1.00  0.00          MN
+HETATM   18 FE   LIG A  18     -17.500  -3.500   0.000  1.00  0.00          FE
+HETATM   19 CO   LIG A  19     -10.500  -3.500   0.000  1.00  0.00          CO
+HETATM   20 NI   LIG A  20      -3.500  -3.500   0.000  1.00  0.00          NI
+HETATM   21 CU   LIG A  21       3.500  -3.500   0.000  1.00  0.00          CU
+HETATM   22 ZN   LIG A  22      10.500  -3.500   0.000  1.00  0.00          ZN
+HETATM   23 MO   LIG A  23      17.500  -3.500   0.000  1.00  0.00          MO
+HETATM   24 W    LIG A  24      24.500  -3.500   0.000  1.00  0.00           W
+HETATM   25 AG   LIG A  25     -24.500 -10.500   0.000  1.00  0.00          AG
+HETATM   26 CD   LIG A  26     -17.500 -10.500   0.000  1.00  0.00          CD
+HETATM   27 PT   LIG A  27     -10.500 -10.500   0.000  1.00  0.00          PT
+HETATM   28 AU   LIG A  28      -3.500 -10.500   0.000  1.00  0.00          AU
+HETATM   29 HG   LIG A  29       3.500 -10.500   0.000  1.00  0.00          HG
+HETATM   30 B    LIG A  30      10.500 -10.500   0.000  1.00  0.00           B
+HETATM   31 SI   LIG A  31      17.500 -10.500   0.000  1.00  0.00          SI
+HETATM   32 AS   LIG A  32      24.500 -10.500   0.000  1.00  0.00          AS
+HETATM   33 XE   LIG A  33     -24.500 -17.500   0.000  1.00  0.00          XE
+END

@@ -6,27 +6,12 @@
  * Author: Eric G. Suchanek, Ph.D.
  * Copyright (c) 1993-2026 Eric G. Suchanek, Ph.D.  All rights reserved.
  *
- * Include, in this order:
+ * Include after atoms2.inc; see the note there about colours.
  *
- *   #include "colors.inc"
- *   #include "shapes.inc"
- *   #include "textures.inc"
- *   #include "atoms_vdw.inc"      // or atoms_covalent.inc / atoms_cpk.inc
- *   #include "atoms2.inc"
- *   #include "atoms_glass2.inc"
- *
- * Updated from POV-Ray 2.0 to 3.7 syntax:
- *   - `sphere { <0,0,0> RADIUS }` gained the comma 3.x requires.
- *   - float declarations gained terminating semicolons.
- *   - refraction and ior are no longer accepted inside finish{}.  The old
- *     `refraction 0.9 ior 1.15` becomes an interior{} attached to each
- *     sphere; the transparency itself is carried by the pigment's filter,
- *     which is what actually let light through even in 2.x.
- *   - Atom_Glass_Ca carried both a texture{} and a bare pigment{}.  In 3.x
- *     that is an error -- the object already has a texture -- so the
- *     redundant pigment, which duplicated Glass_Ca's colour anyway, is gone.
- *   - Glass_P is declared rather than borrowing Glass_S.  Phosphorus and
- *     sulphur are both yellow in atoms2.inc, so the appearance is unchanged.
+ * Calcium and iron are deliberately not the same colour here as in
+ * atoms2.inc -- calcium is white solid but dark purple in glass, iron dark
+ * purple solid but gold in glass.  That inconsistency dates from the 1994
+ * files and is preserved so existing -q renders do not change.
  */
 
 #declare Atoms_Glass_Inc_Temp = version;
@@ -46,13 +31,19 @@
 /* Attached to each glass sphere below; carries what finish{} used to. */
 #declare my_glass_interior = interior { ior 1.15 }
 
-#declare Glass_N = texture {
-    pigment { color rgbf <0.0, 0.0, 1.0, 0.98> }
+
+#declare Glass_H = texture {
+    pigment { color VLightGrey filter 0.98 }
     finish { my_glass_finish }
 }
 
 #declare Glass_C = texture {
     pigment { color rgbf <0.0, 1.0, 0.0, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_N = texture {
+    pigment { color rgbf <0.0, 0.0, 1.0, 0.98> }
     finish { my_glass_finish }
 }
 
@@ -76,13 +67,139 @@
     finish { my_glass_finish }
 }
 
-#declare Glass_H = texture {
-    pigment { color VLightGrey filter 0.98 }
+#declare Glass_Fe = texture {
+    pigment { color Gold filter 0.98 }
     finish { my_glass_finish }
 }
 
-#declare Glass_Fe = texture {
-    pigment { color Gold filter 0.98 }
+#declare Glass_Se = texture {
+    pigment { color rgbf <1.000, 0.631, 0.000, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_F = texture {
+    pigment { color rgbf <0.565, 0.878, 0.314, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Cl = texture {
+    pigment { color rgbf <0.122, 0.941, 0.122, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Br = texture {
+    pigment { color rgbf <0.651, 0.161, 0.161, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_I = texture {
+    pigment { color rgbf <0.580, 0.000, 0.580, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Li = texture {
+    pigment { color rgbf <0.800, 0.502, 1.000, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Na = texture {
+    pigment { color rgbf <0.671, 0.361, 0.949, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_K = texture {
+    pigment { color rgbf <0.561, 0.251, 0.831, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Mg = texture {
+    pigment { color rgbf <0.541, 1.000, 0.000, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Mn = texture {
+    pigment { color rgbf <0.611, 0.478, 0.780, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Co = texture {
+    pigment { color rgbf <0.941, 0.565, 0.627, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Ni = texture {
+    pigment { color rgbf <0.314, 0.816, 0.314, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Cu = texture {
+    pigment { color rgbf <0.784, 0.502, 0.200, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Zn = texture {
+    pigment { color rgbf <0.490, 0.502, 0.690, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Mo = texture {
+    pigment { color rgbf <0.329, 0.710, 0.710, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_W = texture {
+    pigment { color rgbf <0.129, 0.580, 0.839, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Ag = texture {
+    pigment { color rgbf <0.753, 0.753, 0.753, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Cd = texture {
+    pigment { color rgbf <1.000, 0.851, 0.561, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Pt = texture {
+    pigment { color rgbf <0.816, 0.816, 0.878, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Au = texture {
+    pigment { color rgbf <1.000, 0.820, 0.137, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Hg = texture {
+    pigment { color rgbf <0.722, 0.722, 0.816, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_B = texture {
+    pigment { color rgbf <1.000, 0.710, 0.710, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Si = texture {
+    pigment { color rgbf <0.941, 0.784, 0.627, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_As = texture {
+    pigment { color rgbf <0.741, 0.502, 0.890, 0.98> }
+    finish { my_glass_finish }
+}
+
+#declare Glass_Xe = texture {
+    pigment { color rgbf <0.259, 0.620, 0.690, 0.98> }
+    finish { my_glass_finish }
+}
+
+
+#declare Glass_X = texture {
+    pigment { color Gray50 filter 0.98 }
     finish { my_glass_finish }
 }
 
@@ -91,15 +208,22 @@
     finish { my_glass_finish }
 }
 
-#declare Atom_Glass_N = sphere {
-    <0, 0, 0>, N_RAD
-    texture { Glass_N }
+
+#declare Atom_Glass_H = sphere {
+    <0, 0, 0>, H_RAD
+    texture { Glass_H }
     interior { my_glass_interior }
 }
 
 #declare Atom_Glass_C = sphere {
     <0, 0, 0>, C_RAD
     texture { Glass_C }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_N = sphere {
+    <0, 0, 0>, N_RAD
+    texture { Glass_N }
     interior { my_glass_interior }
 }
 
@@ -127,22 +251,162 @@
     interior { my_glass_interior }
 }
 
-#declare Atom_Glass_H = sphere {
-    <0, 0, 0>, H_RAD
-    texture { Glass_H }
-    interior { my_glass_interior }
-}
-
 #declare Atom_Glass_Fe = sphere {
     <0, 0, 0>, FE_RAD
     texture { Glass_Fe }
     interior { my_glass_interior }
 }
 
-#declare Glass_X = texture {
-    pigment { color Gray50 filter 0.98 }
-    finish { my_glass_finish }
+#declare Atom_Glass_Se = sphere {
+    <0, 0, 0>, SE_RAD
+    texture { Glass_Se }
+    interior { my_glass_interior }
 }
+
+#declare Atom_Glass_F = sphere {
+    <0, 0, 0>, F_RAD
+    texture { Glass_F }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Cl = sphere {
+    <0, 0, 0>, CL_RAD
+    texture { Glass_Cl }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Br = sphere {
+    <0, 0, 0>, BR_RAD
+    texture { Glass_Br }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_I = sphere {
+    <0, 0, 0>, I_RAD
+    texture { Glass_I }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Li = sphere {
+    <0, 0, 0>, LI_RAD
+    texture { Glass_Li }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Na = sphere {
+    <0, 0, 0>, NA_RAD
+    texture { Glass_Na }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_K = sphere {
+    <0, 0, 0>, K_RAD
+    texture { Glass_K }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Mg = sphere {
+    <0, 0, 0>, MG_RAD
+    texture { Glass_Mg }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Mn = sphere {
+    <0, 0, 0>, MN_RAD
+    texture { Glass_Mn }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Co = sphere {
+    <0, 0, 0>, CO_RAD
+    texture { Glass_Co }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Ni = sphere {
+    <0, 0, 0>, NI_RAD
+    texture { Glass_Ni }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Cu = sphere {
+    <0, 0, 0>, CU_RAD
+    texture { Glass_Cu }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Zn = sphere {
+    <0, 0, 0>, ZN_RAD
+    texture { Glass_Zn }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Mo = sphere {
+    <0, 0, 0>, MO_RAD
+    texture { Glass_Mo }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_W = sphere {
+    <0, 0, 0>, W_RAD
+    texture { Glass_W }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Ag = sphere {
+    <0, 0, 0>, AG_RAD
+    texture { Glass_Ag }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Cd = sphere {
+    <0, 0, 0>, CD_RAD
+    texture { Glass_Cd }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Pt = sphere {
+    <0, 0, 0>, PT_RAD
+    texture { Glass_Pt }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Au = sphere {
+    <0, 0, 0>, AU_RAD
+    texture { Glass_Au }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Hg = sphere {
+    <0, 0, 0>, HG_RAD
+    texture { Glass_Hg }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_B = sphere {
+    <0, 0, 0>, B_RAD
+    texture { Glass_B }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Si = sphere {
+    <0, 0, 0>, SI_RAD
+    texture { Glass_Si }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_As = sphere {
+    <0, 0, 0>, AS_RAD
+    texture { Glass_As }
+    interior { my_glass_interior }
+}
+
+#declare Atom_Glass_Xe = sphere {
+    <0, 0, 0>, XE_RAD
+    texture { Glass_Xe }
+    interior { my_glass_interior }
+}
+
 
 /* Generic atom; see the Atom_X note in atoms2.inc. */
 #declare Atom_Glass_X = sphere {

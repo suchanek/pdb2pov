@@ -74,9 +74,40 @@ check: $(PROG)
 	  echo "FAIL: crambin differs between default and --legacy-elements"; \
 	  rm -f check_a.tmp check_b.tmp; exit 1; \
 	fi
+	@echo "--- every element in the table must have its declarations ---"
+	./$(PROG) elements check_elements -v -p
+	./$(PROG) elements check_elements_glass -q -d 7.5 -p
+	@if grep -qE 'Atom_X\b' check_elements.pov; then \
+	  echo "FAIL: an element in the ELEMENTS table has no dedicated texture"; \
+	  exit 1; \
+	else \
+	  echo "OK: every element resolved to its own texture"; \
+	fi
+	@n=`grep -o 'Atom_[A-Za-z]*' check_elements.pov | sort -u | wc -l`; \
+	echo "   $$n distinct textures referenced"
+	@#
+	@# Only a render proves the include files actually declare them; an
+	@# undeclared identifier is a parse error.  Skipped, with a note, when
+	@# POV-Ray is not installed -- it is not a build dependency.
+	@#
+	@if command -v povray > /dev/null 2>&1; then \
+	  echo "   rendering to verify the declarations exist..."; \
+	  if povray +Icheck_elements.pov +Ocheck_elements.png +W320 +H160 -D +L. \
+	       > check_pov.tmp 2>&1 && \
+	     povray +Icheck_elements_glass.pov +Ocheck_elements_glass.png \
+	       +W320 +H160 -D +L. >> check_pov.tmp 2>&1; then \
+	    echo "OK: solid and glass textures all resolve"; \
+	  else \
+	    echo "FAIL: render failed -- see check_pov.tmp"; exit 1; \
+	  fi; \
+	  rm -f check_pov.tmp; \
+	else \
+	  echo "SKIP: povray not on PATH; cannot verify the .inc declarations"; \
+	fi
 
 clean:
 	rm -f $(OBJ)
 
 distclean: clean
-	rm -f $(PROG) check_crambin.pdb check_crambin_*.pov check_crambin_*.inc check_*.tmp
+	rm -f $(PROG) check_crambin.pdb check_crambin_*.pov check_crambin_*.inc \
+	      check_elements*.pov check_elements*.png check_*.tmp

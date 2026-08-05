@@ -15,7 +15,7 @@
 
 /* --- version ----------------------------------------------------------- */
 
-#define PDB2POV_VERSION "2.1"
+#define PDB2POV_VERSION "2.2"
 
 /*
  * POV-Ray language level the emitted scenes are written against.  3.7 is the
@@ -34,27 +34,31 @@
 /* --- atom type codes ---------------------------------------------------- */
 
 /*
- * Indices produced by make_atom_types().  The values are historical and are
- * not contiguous; ANY_TYPE is the catch-all for elements with no dedicated
- * texture in atoms2.inc.
+ * Atom types are indices into the element table in pdb2pov.c, which pairs a
+ * PDB element symbol with the POV-Ray identifier suffix used to build
+ * "Atom_<suffix>" and "Atom_Glass_<suffix>".
+ *
+ * Through 2.1 these were eight non-contiguous #defines and a switch repeated
+ * for the solid and glass cases.  A table scales; adding an element is one
+ * row here and one declaration in each include file, and make check proves
+ * the two stay in step.
  */
-#define H_TYPE   7
-#define C_TYPE   2
-#define O_TYPE   4
-#define N_TYPE   3
-#define S_TYPE   6
-#define P_TYPE   8
-#define CA_TYPE  9
-#define FE_TYPE 10
-#define ANY_TYPE 5
+#define ELEMENT_UNKNOWN (-1) /* no dedicated texture; renders as Atom_X */
 
 /* --- geometry ----------------------------------------------------------- */
 
 /*
- * Largest atomic radius in angstroms, used to pad the bounding box and the
- * enclosing sphere.  Deliberately a generous overestimate: the padding is
- * applied to unscaled coordinates, so it stays conservative once ATM_SCL
- * shrinks the spheres in ball-and-stick mode.
+ * Atomic radius in angstroms used to pad the bounding box and the enclosing
+ * sphere.  The padding is applied to unscaled coordinates, so it stays
+ * conservative once ATM_SCL shrinks the spheres in ball-and-stick mode.
+ *
+ * It is no longer an upper bound on every radius: the elements added in 2.2
+ * include potassium at 2.75 A van der Waals.  Raising it would move the
+ * camera and the reported enclosing radius for every existing scene -- the
+ * crambin figures quoted downstream among them -- for the sake of at most a
+ * quarter of an angstrom of framing margin on a structure whose outermost
+ * atom happens to be an alkali metal.  Nothing clips as a result; the manual
+ * bounding sphere that could have was removed in 2.0.
  */
 #define MAX_RAD 2.5
 
@@ -166,6 +170,12 @@ typedef struct {
 } Extents;
 
 /* --- prototypes --------------------------------------------------------- */
+
+/* element table */
+int element_count(void);
+const char *element_symbol(int idx);   /* "FE"  */
+const char *element_pov_suffix(int idx); /* "Fe" */
+int element_index(const char *symbol);   /* ELEMENT_UNKNOWN if unlisted */
 
 /* pdb_io.c-equivalent routines, all still in pdb2pov.c */
 int count_pdb_atoms(const char *path);

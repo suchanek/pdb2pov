@@ -359,29 +359,75 @@ static int field_double(const char *line, size_t len, size_t start,
 }
 
 /*
- * Map a PDB element symbol to one of the *_TYPE codes.  Returns ANY_TYPE for
- * anything without a dedicated texture in atoms2.inc; such atoms render with
- * the generic Atom_X rather than being dropped.
+ * The elements pdb2pov can draw.
+ *
+ * `symbol` is the PDB element symbol as it appears in columns 77-78, upper
+ * case.  `pov_suffix` builds the POV-Ray identifiers: a row of {"ZN", "Zn"}
+ * means the scene refers to Atom_Zn and Atom_Glass_Zn, sized by ZN_RAD.
+ *
+ * Every row must have a matching declaration in atoms2.inc, atoms_glass2.inc
+ * and each of the three radius includes.  `make check` renders one atom of
+ * every element listed here, so a row added without its declarations fails
+ * loudly rather than at the user's first metalloprotein.
+ *
+ * Order is irrelevant to correctness; it runs roughly biological-organic,
+ * halogen, alkali and alkaline earth, transition and heavy metal, other.
  */
-static int element_to_type(const char *el)
+typedef struct {
+    const char *symbol;
+    const char *pov_suffix;
+} Element;
+
+static const Element ELEMENTS[] = {
+    /* organic and biological */
+    {"H",  "H"},  {"C",  "C"},  {"N",  "N"},  {"O",  "O"},
+    {"S",  "S"},  {"P",  "P"},  {"SE", "Se"},
+    /* halogens */
+    {"F",  "F"},  {"CL", "Cl"}, {"BR", "Br"}, {"I",  "I"},
+    /* alkali and alkaline earth */
+    {"LI", "Li"}, {"NA", "Na"}, {"K",  "K"},  {"MG", "Mg"}, {"CA", "Ca"},
+    /* transition and heavy metals */
+    {"MN", "Mn"}, {"FE", "Fe"}, {"CO", "Co"}, {"NI", "Ni"}, {"CU", "Cu"},
+    {"ZN", "Zn"}, {"MO", "Mo"}, {"W",  "W"},  {"AG", "Ag"}, {"CD", "Cd"},
+    {"PT", "Pt"}, {"AU", "Au"}, {"HG", "Hg"},
+    /* other */
+    {"B",  "B"},  {"SI", "Si"}, {"AS", "As"}, {"XE", "Xe"}
+};
+
+#define N_ELEMENTS ((int)(sizeof ELEMENTS / sizeof ELEMENTS[0]))
+
+int element_count(void)
 {
-    if (strcmp(el, "H") == 0 || strcmp(el, "D") == 0)
-        return H_TYPE; /* deuterium renders as hydrogen */
-    if (strcmp(el, "C") == 0)
-        return C_TYPE;
-    if (strcmp(el, "N") == 0)
-        return N_TYPE;
-    if (strcmp(el, "O") == 0)
-        return O_TYPE;
-    if (strcmp(el, "S") == 0)
-        return S_TYPE;
-    if (strcmp(el, "P") == 0)
-        return P_TYPE;
-    if (strcmp(el, "CA") == 0)
-        return CA_TYPE;
-    if (strcmp(el, "FE") == 0)
-        return FE_TYPE;
-    return ANY_TYPE;
+    return N_ELEMENTS;
+}
+
+const char *element_symbol(int idx)
+{
+    return (idx >= 0 && idx < N_ELEMENTS) ? ELEMENTS[idx].symbol : "X";
+}
+
+const char *element_pov_suffix(int idx)
+{
+    return (idx >= 0 && idx < N_ELEMENTS) ? ELEMENTS[idx].pov_suffix : "X";
+}
+
+int element_index(const char *symbol)
+{
+    int i;
+
+    if (symbol == NULL || symbol[0] == '\0')
+        return ELEMENT_UNKNOWN;
+
+    /* Deuterium and tritium are hydrogen as far as a picture is concerned. */
+    if (strcmp(symbol, "D") == 0 || strcmp(symbol, "T") == 0)
+        symbol = "H";
+
+    for (i = 0; i < N_ELEMENTS; i++) {
+        if (strcmp(ELEMENTS[i].symbol, symbol) == 0)
+            return i;
+    }
+
+    return ELEMENT_UNKNOWN;
 }
 
 /*
@@ -392,22 +438,24 @@ static int element_to_type(const char *el)
  * It is wrong for any two-letter element whose first letter collides with a
  * one-letter element -- sodium reads as nitrogen, chlorine as carbon,
  * fluorine as iron -- and it cannot tell a protein alpha carbon from calcium
- * without the caller's help.
+ * without the caller's help.  It is deliberately not extended to the wider
+ * element table: guessing more elements from names would only produce more
+ * confident mistakes.
  */
-static int guess_type_from_name(const char *name)
+static const char *guess_symbol_from_name(const char *name)
 {
     int a = toupper((unsigned char)name[0]);
     int b = toupper((unsigned char)name[1]);
 
     switch (a) {
-    case 'H': return H_TYPE;
-    case 'C': return (b == 'A') ? CA_TYPE : C_TYPE;
-    case 'O': return O_TYPE;
-    case 'N': return N_TYPE;
-    case 'S': return S_TYPE;
-    case 'P': return P_TYPE;
-    case 'F': return FE_TYPE;
-    default:  return ANY_TYPE;
+    case 'H': return "H";
+    case 'C': return (b == 'A') ? "CA" : "C";
+    case 'O': return "O";
+    case 'N': return "N";
+    case 'S': return "S";
+    case 'P': return "P";
+    case 'F': return "FE";
+    default:  return NULL;
     }
 }
 
@@ -648,13 +696,13 @@ void make_atom_types(const Options *opt, Structure *s, ParseStats *st)
         int type;
 
         if (opt->legacy_elements || s->element[i][0] == '\0')
-            type = guess_type_from_name(s->atom_name[i]);
+            type = element_index(guess_symbol_from_name(s->atom_name[i]));
         else
-            type = element_to_type(s->element[i]);
+            type = element_index(s->element[i]);
 
         s->type[i] = type;
 
-        if (type == ANY_TYPE) {
+        if (type == ELEMENT_UNKNOWN) {
             st->generic++;
             /*
              * Report the element symbol when there is one; otherwise the atom
@@ -855,7 +903,8 @@ double compute_sphere(const Structure *s)
  */
 static int is_hydrogen(const Structure *s, int i)
 {
-    return s->type[i] == H_TYPE;
+    return strcmp(element_symbol(s->type[i]), "H") == 0 &&
+           s->type[i] != ELEMENT_UNKNOWN;
 }
 
 /*
@@ -950,25 +999,17 @@ static void pov_identifier(const char *stem, char *out, size_t outsz)
     }
 }
 
-/* Texture name for an atom type, or NULL if the type has no texture. */
-static const char *atom_object_name(int type, int glass)
+/*
+ * POV-Ray object identifier for an atom type, written into buf.
+ *
+ * ELEMENT_UNKNOWN yields the generic Atom_X.  Before 2.1 it yielded nothing
+ * and the atom was dropped without a message, so an ion could disappear from
+ * a scene while the header atom count still looked right.
+ */
+static void atom_object_name(int type, int glass, char *buf, size_t bufsz)
 {
-    switch (type) {
-    case H_TYPE:  return glass ? "Atom_Glass_H"  : "Atom_H";
-    case N_TYPE:  return glass ? "Atom_Glass_N"  : "Atom_N";
-    case C_TYPE:  return glass ? "Atom_Glass_C"  : "Atom_C";
-    case P_TYPE:  return glass ? "Atom_Glass_P"  : "Atom_P";
-    case O_TYPE:  return glass ? "Atom_Glass_O"  : "Atom_O";
-    case S_TYPE:  return glass ? "Atom_Glass_S"  : "Atom_S";
-    case CA_TYPE: return glass ? "Atom_Glass_Ca" : "Atom_Ca";
-    case FE_TYPE: return glass ? "Atom_Glass_Fe" : "Atom_Fe";
-    /*
-     * Generic fallback.  Before 2.1 this returned NULL and the atom was
-     * dropped without a message, so an ion could disappear from a scene while
-     * the header atom count still looked right.
-     */
-    default:      return glass ? "Atom_Glass_X" : "Atom_X";
-    }
+    snprintf(buf, bufsz, "Atom_%s%s", glass ? "Glass_" : "",
+             element_pov_suffix(type));
 }
 
 static const char *radii_include(RadiiSet radii)
@@ -1138,14 +1179,12 @@ static void write_atoms(FILE *f, const Structure *s, const Options *opt,
     int i;
 
     for (i = 0; i < s->natoms; i++) {
-        const char *name;
+        char name[32];
 
-        if (opt->legacy_elements && s->type[i] == ANY_TYPE)
+        if (opt->legacy_elements && s->type[i] == ELEMENT_UNKNOWN)
             continue;
 
-        name = atom_object_name(s->type[i], glass);
-        if (name == NULL)
-            continue;
+        atom_object_name(s->type[i], glass, name, sizeof name);
 
         fprintf(f,
                 "  object { %s scale <%s, %s, %s> translate <%.3f, %.3f, "
@@ -1396,10 +1435,21 @@ int main(int argc, char **argv)
 
     if (status < 0 || s.natoms == 0) {
         fflush(stdout); /* keep the diagnostic after the progress lines */
-        if (stats.skipped_chain > 0 && stats.accepted == 0)
+        if (stats.skipped_chain > 0)
             fprintf(stderr,
                     "pdb2pov: no atoms left after filtering to chain(s) "
                     "'%s'\n", opt.chain_filter);
+        else if (stats.skipped_altloc > 0)
+            fprintf(stderr,
+                    "pdb2pov: every atom was skipped as an alternate "
+                    "conformation.\n"
+                    "         Column 17 should be blank or 'A'; check the "
+                    "record layout, or pass\n"
+                    "         --keep-altlocs.\n");
+        else if (stats.skipped_malformed > 0)
+            fprintf(stderr,
+                    "pdb2pov: %d coordinate record(s) in <%s> could not be "
+                    "parsed\n", stats.skipped_malformed, opt.input_path);
         else
             fprintf(stderr, "pdb2pov: couldn't read atoms from <%s>\n",
                     opt.input_path);

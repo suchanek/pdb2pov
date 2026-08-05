@@ -19,3 +19,5 @@ pdb2pov
 check_crambin.pdb
 check_crambin_*.inc
 check_*.tmp
+check_elements*.pov
+check_elements*.png

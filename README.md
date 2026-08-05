@@ -2,7 +2,7 @@
 
 **Converts Brookhaven PDB atomic structure files into POV-Ray scenes.**
 
-pdb2pov 2.1 — Copyright (c) 1993-2026 Eric G. Suchanek, Ph.D.
+pdb2pov 2.2 — Copyright (c) 1993-2026 Eric G. Suchanek, Ph.D.
 Subject to the GNU License.
 
 Written in 1993 for the Amiga and UNIX. Modernised in 2026: the sources are
@@ -131,10 +131,10 @@ from calcium; with a real element column that distinction is free, so the
 hack is now confined to the legacy path.
 
 **Elements with no dedicated texture render as `Atom_X`,** a neutral grey
-sphere, rather than disappearing. Only H, C, N, O, S, P, Ca and Fe have their
-own textures in `atoms2.inc`; before 2.1 everything else was dropped without a
+sphere, rather than disappearing. Before 2.1 they were dropped without a
 message, so an ion could vanish while the header atom count still looked
-right. The count and the symbols involved are now reported.
+right. The count and the symbols involved are now reported. See
+[Elements](#elements) for what has a texture.
 
 **Alternate conformations are filtered.** Only the blank and `A` altLoc
 indicators are kept. Retaining all of them — the pre-2.1 behaviour — gives
@@ -207,6 +207,69 @@ read it directly rather than scraping the comment:
 With `-o` the file is a `.inc` that saves and restores the language version
 around its own declarations, so including it will not switch the host scene
 to 3.7 behind your back.
+
+---
+
+## Elements
+
+Thirty-three elements have their own radius, colour and texture:
+
+| Group | Elements |
+|-------|----------|
+| Organic and biological | H, C, N, O, S, P, Se |
+| Halogens | F, Cl, Br, I |
+| Alkali and alkaline earth | Li, Na, K, Mg, Ca |
+| Transition and heavy metals | Mn, Fe, Co, Ni, Cu, Zn, Mo, W, Ag, Cd, Pt, Au, Hg |
+| Other | B, Si, As, Xe |
+
+Anything else renders as `Atom_X`, a neutral grey sphere, and is reported.
+Deuterium and tritium are drawn as hydrogen.
+
+**Radii.** The eight elements pdb2pov has always drawn keep their 1994 values
+(Pauling and the CAChe software). Elements added in 2.2 use Bondi van der
+Waals radii and Cordero covalent radii; where a metal's covalent radius
+depends on spin state, the low-spin value is used. `atoms_cpk.inc` remains
+identical to `atoms_vdw.inc` — Corey-Pauling-Koltun space-filling radii *are*
+the van der Waals radii — and is still unreachable, since no flag selects it.
+
+**Colours.** The original eight are not the CPK convention: carbon is green,
+phosphorus yellow, iron dark purple, calcium white. Changing them would alter
+every existing render, so they stay. Elements added in 2.2 use Jmol/CPK
+colours.
+
+The glass textures used by `-q` differ from the solid ones for two elements —
+calcium is white solid but dark purple in glass, iron dark purple solid but
+gold in glass. That inconsistency dates from the 1994 files and is preserved
+for the same reason.
+
+### Adding an element
+
+Four places, and `make check` will tell you if you miss one:
+
+1. a row in the `ELEMENTS` table in `pdb2pov.c`, giving the PDB symbol and the
+   POV-Ray identifier suffix;
+2. `<SYM>_RAD` in `atoms_vdw.inc`, `atoms_covalent.inc` and `atoms_cpk.inc`;
+3. `Atom_<Suffix>` in `atoms2.inc`;
+4. `Glass_<Suffix>` and `Atom_Glass_<Suffix>` in `atoms_glass2.inc`.
+
+`make check` converts the bundled `elements.pdb` — one atom of every element
+in the table — and renders it. A row added without its declarations is an
+undeclared POV-Ray identifier, which is a parse error, so the omission fails
+the build rather than surfacing at someone's first metalloprotein.
+
+---
+
+## What changed in 2.2
+
+- Thirty-three elements have dedicated radii, colours and textures, up from
+  eight. See [Elements](#elements).
+- The element dispatch is a table rather than two parallel switch statements,
+  so adding one is a row and four declarations.
+- `elements.pdb` and a `make check` step verify the table and the include
+  files agree.
+
+Existing scenes are unaffected: the original eight keep their radii and
+colours exactly, and crambin converts to byte-identical output.
 
 ---
 
