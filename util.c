@@ -1,232 +1,119 @@
-/* util.c - some general memory allocation utilities */
-/* $Id: util.c,v 1.5 1994/03/15 18:06:57 eric Exp eric $ */
-/* $Log: util.c,v $
- * Revision 1.5  1994/03/15  18:06:57  eric
- * re-ordered since math.h wasn't included in the generic version!
- * messed up bond calculation
+/*
+ * util.c -- rectangular array allocators for pdb2pov.
  *
- * Revision 1.4  1993/11/17  17:19:37  eric
- * added additional define for the amiga-specific hypot function
+ * Copyright (c) 1993-2026 Eric G. Suchanek, Ph.D.  All rights reserved.
+ * Subject to the GNU License.
  *
- * Revision 1.2  1993/11/16  18:35:36  eric
- * added conditionals for UNIX/AMIGA, hypot fxn
+ * History: these began as the Numerical-Recipes dmatrix/dvector family.  Three
+ * things about that lineage are gone:
  *
- * Revision 1.1  1993/11/13  12:54:12  eric
- * Initial revision
- * */
-#ifdef AMIGA
-#include <exec/types.h>
-#include <math.h>
-#define  __USE_SYSBASE
-
-#ifdef _M68881
-#include <m68881.h>
-
-#include <proto/all.h>
-#include "util_protos.h"
-#endif
-#endif
+ *   - the returned pointer was offset by a subscript base (`- nrl`) that was
+ *     always zero.  Computing it was undefined behaviour for any non-zero
+ *     base, and it bought nothing at zero.
+ *   - the row-pointer array was one entry longer than the row count, because
+ *     the bounds were inclusive high subscripts rather than counts.
+ *   - an allocation failure called exit() from inside the allocator, so a
+ *     caller could not release what it already held.  They now return NULL.
+ */
 
 #include <stdlib.h>
-#include <stdio.h>
 
+#include "util.h"
 
-#ifdef AMIGA
-double hypot(double x, double y)
+/*
+ * Allocating a rows x cols array is the same shape of work for each element
+ * type, so the three matrix allocators share one implementation.  The row
+ * pointers are stored in a void * array, which is layout-compatible with the
+ * T * array the caller sees.
+ */
+static void **alloc_matrix(size_t rows, size_t cols, size_t elem_size)
 {
-  return((sqrt((x*x + y*y))));
+    void **m;
+    size_t i;
 
-}
+    if (rows == 0 || cols == 0)
+        return NULL;
 
-#endif
+    /* Guard the row-byte count against overflow before asking for it. */
+    if (cols > (size_t)-1 / elem_size)
+        return NULL;
 
+    m = calloc(rows, sizeof *m);
+    if (m == NULL)
+        return NULL;
 
-void EGS_error(char error_text[])
-     
-{
-  fprintf(stderr,"Run-time error...\n");
-  fprintf(stderr,"%s\n",error_text);
-  fprintf(stderr,"...now exiting to system...\n");
-  exit(-10);
-}
-
-
-
-/* allocate a double matrix with subscript range m[nrl..nrh][ncl..nch] */
-
-/* double **mat;
-   mat = dmatrix(10,10)
-*/
-
-double **dmatrix(int nrh,int nch)
-{
-  int i;
-  double **m;
-  int nrl = 0;
-  int ncl = 0;
-
-  /* allocate pointers to rows */
-  
-  m=(double **) malloc((unsigned) (nrh-nrl + 1)*sizeof(double *))-nrl;
-  if (!m) {
-    EGS_error("allocation failure 1 in dmatrix()");
-    return(NULL);
-  }
-  
-  /* allocate rows and set pointers to them */
-  
-  for(i=nrl;i<=nrh;i++) {
-    m[i]=(double *) malloc((unsigned) (nch-ncl)*sizeof(double))-ncl;
-    if (!m[i]) {
-      EGS_error("allocation failure 2 in dmatrix()");
-      return(NULL);
+    for (i = 0; i < rows; i++) {
+        m[i] = calloc(cols, elem_size);
+        if (m[i] == NULL) {
+            /* calloc() zeroed the tail, so freeing the whole array is safe. */
+            while (i > 0)
+                free(m[--i]);
+            free(m);
+            return NULL;
+        }
     }
-  }
-  
-  /* return pointer to array of pointers to rows */
-  
-  return m;
+
+    return m;
 }
 
-/* free a double matrix allocated by dmatrix() */
-
-void free_dmatrix(m,nrh,nch)
-     double **m;
-     int nrh,nch;
+static void free_matrix(void **m, size_t rows)
 {
-  int i;
-  int nrl = 0;
-  int ncl = 0;
-  
-  for(i=nrh;i>=nrl;i--) free((char*) (m[i]+ncl));
-  free((char*) (m+nrl));
+    size_t i;
+
+    if (m == NULL)
+        return;
+
+    for (i = 0; i < rows; i++)
+        free(m[i]);
+    free(m);
 }
 
-int **imatrix(int nrh,int nch)
+double **dmatrix(size_t rows, size_t cols)
 {
-  int i;
-  int **m;
-  int nrl = 0;
-  int ncl = 0;
-
-  /* allocate pointers to rows */
-  
-  m=(int **) malloc((unsigned) (nrh-nrl + 1)*sizeof(int *))-nrl;
-  if (!m) {
-    EGS_error("allocation failure 1 in imatrix()");
-    return(NULL);
-  }
-  
-  /* allocate rows and set pointers to them */
-  
-  for(i=nrl;i<=nrh;i++) {
-    m[i]=(int *) malloc((unsigned) (nch-ncl)*sizeof(int))-ncl;
-    if (!m[i]) {
-      EGS_error("allocation failure 2 in imatrix()");
-      return(NULL);
-    }
-  }
-  
-  /* return pointer to array of pointers to rows */
-  
-  return m;
+    return (double **)alloc_matrix(rows, cols, sizeof(double));
 }
 
-/* free a int matrix allocated by imatrix() */
-
-void free_imatrix(m,nrh,nch)
-     int **m;
-     int nrh,nch;
+void free_dmatrix(double **m, size_t rows)
 {
-  int i;
-  int nrl = 0;
-  int ncl = 0;
-  
-  for(i=nrh;i>=nrl;i--) free((char*) (m[i]+ncl));
-  free((char*) (m+nrl));
+    free_matrix((void **)m, rows);
 }
 
-char **cmatrix(int nrh,int nch)
+int **imatrix(size_t rows, size_t cols)
 {
-  int i;
-  char **m;
-  int nrl = 0;
-  int ncl = 0;
-
-  /* allocate pointers to rows */
-  
-  m=(char **) malloc((unsigned) (nrh-nrl+1)*sizeof(char *))-nrl;
-  if (!m) {
-    EGS_error("allocation failure 1 in cmatrix()");
-    return(NULL);
-  }
-  
-  /* allocate rows and set pointers to them */
-  
-  for(i=nrl;i<=nrh;i++) {
-    m[i]=(char *) malloc((unsigned) (nch-ncl)*sizeof(char))-ncl;
-    if (!m[i]) {
-      EGS_error("allocation failure 2 in cmatrix()");
-      return(NULL);
-    }
-  }
-  
-  /* return pointer to array of pointers to rows */
-  
-  return m;
+    return (int **)alloc_matrix(rows, cols, sizeof(int));
 }
 
-/* free a double matrix allocated by dmatrix() */
-
-void free_cmatrix(m,nrh,nch)
-     char **m;
-     int nrh,nch;
+void free_imatrix(int **m, size_t rows)
 {
-  int i;
-  int nrl = 0;
-  int ncl = 0;
-  
-  for(i=nrh;i>=nrl;i--) free((char*) (m[i]+ncl));
-  free((char*) (m+nrl));
+    free_matrix((void **)m, rows);
 }
 
-
-double *dvector(nh)
-int nh;
+char **cmatrix(size_t rows, size_t cols)
 {
-        int nl = 0;
-	double *v;
-
-	v=(double *)malloc((unsigned) (nh-nl+1)*sizeof(double));
-	if (!v) EGS_error("allocation failure in dvector()");
-	return v;
+    return (char **)alloc_matrix(rows, cols, sizeof(char));
 }
 
-void free_dvector(v,nh)
-double *v;
-int nh;
+void free_cmatrix(char **m, size_t rows)
 {
-  int nl = 0;
-  free((char*) (v+nl));
+    free_matrix((void **)m, rows);
 }
 
-
-int *ivector(nh)
-int nh;
+double *dvector(size_t n)
 {
-        int nl = 0;
-	int *v;
-
-	v=(int *)malloc((unsigned) (nh-nl+1)*sizeof(int));
-	if (!v) EGS_error("allocation failure in ivector()");
-	return v;
+    return n ? calloc(n, sizeof(double)) : NULL;
 }
 
-void free_ivector(v,nh)
-int *v;
-int nh;
+void free_dvector(double *v)
 {
-  int nl = 0;
-  free((char*) (v+nl));
+    free(v);
 }
 
+int *ivector(size_t n)
+{
+    return n ? calloc(n, sizeof(int)) : NULL;
+}
+
+void free_ivector(int *v)
+{
+    free(v);
+}
