@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdb2pov"
+version = "2.2.0"
+description = "Convert PDB and PDBx/mmCIF atomic structures into POV-Ray scenes"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-2.0-or-later" }
+authors = [{ name = "Eric G. Suchanek, Ph.D." }]
+keywords = ["pdb", "mmcif", "povray", "molecular graphics", "raytracing"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics :: 3D Rendering",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+# Deliberately none: the point of a stand-alone directory is that it runs
+# wherever there is a Python, with no wheels to build and nothing to pin.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+pdb2pov = "pdb2pov.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/suchanek/pdb2pov"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pdb2pov = ["include/*.inc"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

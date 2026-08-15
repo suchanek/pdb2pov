@@ -4,7 +4,10 @@
 *.o
 *.o30
 *.o40
-pdb2pov
+# Anchored to the root on purpose: an unanchored "pdb2pov" also matches the
+# Python package directory at python/src/pdb2pov, which git would then
+# exclude in its entirety without saying so.
+/pdb2pov
 
 # Editor backups
 *~
@@ -21,3 +24,13 @@ check_crambin_*.inc
 check_*.tmp
 check_elements*.pov
 check_elements*.png
+python/check_py_*.inc
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+build/
+dist/
+*.egg-info/
+.venv/

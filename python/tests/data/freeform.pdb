@@ -1,0 +1,5 @@
+REMARK   1 Coordinates that start in column 31 but ignore the 8-wide fields.
+REMARK   1 The C fell back to a free-form scan for these; so does the port.
+ATOM      1  N   CYS     3      13.5 11.2 8.4
+ATOM      2  CA  CYS     3      13.7 10.7 9.8
+END
