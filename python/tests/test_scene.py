@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from pdb2pov import (
+from pypdb2pov import (
     Backdrop,
     Ground,
     ParseOptions,
@@ -18,8 +18,8 @@ from pdb2pov import (
     read_structure,
     scene_text,
 )
-from pdb2pov.geometry import DEG_PER_RAD_CAM
-from pdb2pov.structure import Atom, Structure
+from pypdb2pov.geometry import DEG_PER_RAD_CAM
+from pypdb2pov.structure import Atom, Structure
 
 
 def crambin(path: str, **scene_kwargs):
@@ -128,7 +128,7 @@ def test_backdrops_and_grounds(crambin_pdb):
 def test_unknown_elements_render_as_a_grey_sphere_by_default():
     """Before 2.1 an unrecognised element vanished from the scene."""
     structure = Structure(atoms=[Atom(0.0, 0.0, 0.0, name="U", element="U")])
-    from pdb2pov import assign_types
+    from pypdb2pov import assign_types
 
     assign_types(structure)
 
@@ -141,7 +141,7 @@ def test_unknown_elements_render_as_a_grey_sphere_by_default():
 
 def test_legacy_mode_drops_them_as_it_always_did():
     structure = Structure(atoms=[Atom(0.0, 0.0, 0.0, name="U", element="U")])
-    from pdb2pov import assign_types
+    from pypdb2pov import assign_types
 
     assign_types(structure, legacy=True)
 

@@ -1,5 +1,5 @@
 """
-pdb2pov -- convert Brookhaven PDB and PDBx/mmCIF structures into POV-Ray
+pypdb2pov -- convert Brookhaven PDB and PDBx/mmCIF structures into POV-Ray
 scenes.
 
 A Python port of ``pdb2pov.c`` 2.2 by Eric G. Suchanek, Ph.D., which has been
@@ -12,14 +12,14 @@ rather than only a command line.
 
 Typical use::
 
-    from pdb2pov import convert
+    from pypdb2pov import convert
 
     convert("1crn.pdb", "crambin", ball_stick=True, bond_threshold=1.9)
 
 or, with the pieces exposed::
 
-    from pdb2pov import ParseOptions, SceneOptions, read_structure
-    from pdb2pov import find_bonds, prepare_structure, write_scene
+    from pypdb2pov import ParseOptions, SceneOptions, read_structure
+    from pypdb2pov import find_bonds, prepare_structure, write_scene
 
     structure, stats = read_structure("1crn.cif.gz", ParseOptions(chains="A"))
     options = SceneOptions(ball_stick=True, name="crambin")
@@ -65,8 +65,11 @@ from .readers import (
     read_structure,
 )
 from .scene import (
+    BOND_RAD,
     PDB2POV_VERSION,
     POV_VERSION,
+    PYPDB2POV_VERSION,
+    SPHERE_FUDGE,
     pov_identifier,
     prepare_structure,
     scene_text,
@@ -74,13 +77,17 @@ from .scene import (
 )
 from .structure import Atom, Extents, ParseStats, Structure
 
-__version__ = "2.2.0"
+#: One source of truth; ``pyproject.toml`` is asserted to match it.
+__version__ = PYPDB2POV_VERSION
 
 __all__ = [
     "__version__",
     "PDB2POV_VERSION",
     "POV_VERSION",
+    "PYPDB2POV_VERSION",
     "ALL_MODELS",
+    "BOND_RAD",
+    "SPHERE_FUDGE",
     "ELEMENTS",
     "ELEMENT_UNKNOWN",
     "AltLocPolicy",
@@ -124,7 +131,7 @@ def include_dir() -> str:
     The scenes reference ``atoms2.inc`` and one of the radius sets by name,
     so POV-Ray needs this on its library path::
 
-        povray +Icrambin.pov +L$(python -m pdb2pov --include-dir)
+        povray +Icrambin.pov +L$(python -m pypdb2pov --include-dir)
 
     Shipping them inside the package is what makes this directory
     self-contained: copy it anywhere and the scenes it writes still render.

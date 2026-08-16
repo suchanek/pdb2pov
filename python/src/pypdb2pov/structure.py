@@ -50,8 +50,8 @@ class Atom:
     hetatm: bool = False
     model: int = 1
 
-    #: Index into :data:`pdb2pov.elements.ELEMENTS`, assigned by
-    #: :func:`pdb2pov.readers.assign_types`.  :data:`ELEMENT_UNKNOWN` means
+    #: Index into :data:`pypdb2pov.elements.ELEMENTS`, assigned by
+    #: :func:`pypdb2pov.readers.assign_types`.  :data:`ELEMENT_UNKNOWN` means
     #: the atom draws as the generic ``Atom_X``.
     type_index: int = ELEMENT_UNKNOWN
 
@@ -126,7 +126,7 @@ class ParseStats:
 
     #: ``(atom name, chosen, rejected)`` for names that could have been read
     #: as a two-letter element and were not.  See
-    #: :func:`pdb2pov.elements.infer_element_verbose`.
+    #: :func:`pypdb2pov.elements.infer_element_verbose`.
     ambiguous_names: list[tuple[str, str, str]] = field(default_factory=list)
 
     max_reported_symbols: int = 12

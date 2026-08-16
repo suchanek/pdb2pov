@@ -4,9 +4,9 @@
 *.o
 *.o30
 *.o40
-# Anchored to the root on purpose: an unanchored "pdb2pov" also matches the
-# Python package directory at python/src/pdb2pov, which git would then
-# exclude in its entirety without saying so.
+# Anchored to the root on purpose.  Unanchored, "pdb2pov" matches any file or
+# directory of that name at any depth, which is how it silently excluded the
+# whole Python package directory when that was still called python/src/pdb2pov.
 /pdb2pov
 
 # Editor backups

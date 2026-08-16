@@ -1,4 +1,4 @@
-"""``python -m pdb2pov`` entry point."""
+"""``python -m pypdb2pov`` entry point."""
 
 from __future__ import annotations
 

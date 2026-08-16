@@ -56,7 +56,7 @@ def run_python(source: str, out_stem: str, flags: list[str]) -> int:
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
     env["PYTHONPATH"] = root + os.pathsep + env.get("PYTHONPATH", "")
     return subprocess.run(
-        [sys.executable, "-m", "pdb2pov", source, out_stem, "--quiet", *flags],
+        [sys.executable, "-m", "pypdb2pov", source, out_stem, "--quiet", *flags],
         capture_output=True,
         text=True,
         env=env,
@@ -135,7 +135,7 @@ def test_the_bundled_includes_are_the_same_files(repo_root):
     The package ships its own copy of the POV-Ray includes so it can be used
     on its own.  Copies drift; this is what notices.
     """
-    from pdb2pov import include_dir
+    from pypdb2pov import include_dir
 
     for name in os.listdir(include_dir()):
         upstream = os.path.join(repo_root, name)
@@ -155,7 +155,7 @@ def test_the_element_tables_agree(repo_root):
 
     import re
 
-    from pdb2pov import ELEMENTS
+    from pypdb2pov import ELEMENTS
 
     text = open(source, encoding="utf-8").read()
     body = text.split("static const Element ELEMENTS[] = {", 1)[1].split("};", 1)[0]
@@ -171,7 +171,7 @@ def test_the_radii_match_the_include_files(repo_root):
     """
     import re
 
-    from pdb2pov.elements import COVALENT_RADII, VDW_RADII
+    from pypdb2pov.elements import COVALENT_RADII, VDW_RADII
 
     for filename, table in (
         ("atoms_vdw.inc", VDW_RADII),

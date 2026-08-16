@@ -6,7 +6,7 @@ import os
 
 import pytest
 
-from pdb2pov.cli import EXIT_NO_ATOMS, EXIT_NO_BONDS, EXIT_PARSE_ARGS, main
+from pypdb2pov.cli import EXIT_NO_ATOMS, EXIT_NO_BONDS, EXIT_PARSE_ARGS, main
 
 
 def run(capsys, *argv) -> tuple[int, str, str]:

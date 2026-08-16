@@ -7,7 +7,7 @@ import os
 
 import pytest
 
-from pdb2pov import (
+from pypdb2pov import (
     ALL_MODELS,
     AltLocPolicy,
     InputFormat,
@@ -16,7 +16,7 @@ from pdb2pov import (
     read_pdb,
     read_structure,
 )
-from pdb2pov.readers import decode_hybrid36, detect_format, resolve_input_path
+from pypdb2pov.readers import decode_hybrid36, detect_format, resolve_input_path
 
 
 def read(path: str, **kwargs):
@@ -223,7 +223,7 @@ def test_inference_reads_haem_nitrogens_as_nitrogen(data_dir):
 
 
 def test_legacy_elements_reproduce_the_old_mistakes(data_dir):
-    from pdb2pov import element_symbol
+    from pypdb2pov import element_symbol
 
     structure, _ = read(os.path.join(data_dir, "haem.pdb"), legacy_elements=True)
     by_name = {a.name: element_symbol(a.type_index) for a in structure}
@@ -244,13 +244,13 @@ def test_ambiguous_names_are_reported_not_silent():
 
 
 def test_deuterium_draws_as_hydrogen():
-    from pdb2pov import ELEMENT_UNKNOWN, element_symbol
+    from pypdb2pov import ELEMENT_UNKNOWN, element_symbol
 
     lines = [
         "ATOM      1  D1  GLY A   1       0.000   0.000   0.000  1.00  0.00           D"
     ]
     structure, _ = read_pdb(lines)
-    from pdb2pov import assign_types
+    from pypdb2pov import assign_types
 
     assign_types(structure)
     assert structure.atoms[0].type_index != ELEMENT_UNKNOWN

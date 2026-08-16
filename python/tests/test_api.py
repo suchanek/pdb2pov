@@ -6,8 +6,8 @@ import os
 
 import pytest
 
-import pdb2pov
-from pdb2pov import ParseOptions, SceneOptions, convert, read_structure
+import pypdb2pov
+from pypdb2pov import ParseOptions, SceneOptions, convert, read_structure
 
 
 def test_convert_does_the_whole_pipeline(crambin_pdb, tmp_path):
@@ -59,7 +59,7 @@ def test_filtered_returns_a_new_structure(crambin_pdb):
 
 
 def test_include_dir_ships_every_include_the_scenes_reference():
-    directory = pdb2pov.include_dir()
+    directory = pypdb2pov.include_dir()
     expected = {
         "atoms2.inc",
         "atoms_glass2.inc",
@@ -76,7 +76,7 @@ def test_every_element_in_the_table_has_its_declarations():
     at render time.  `make check` in the C tree catches that by rendering;
     this catches it without POV-Ray installed.
     """
-    directory = pdb2pov.include_dir()
+    directory = pypdb2pov.include_dir()
     solid = open(os.path.join(directory, "atoms2.inc")).read()
     glass = open(os.path.join(directory, "atoms_glass2.inc")).read()
     radii = {
@@ -84,7 +84,7 @@ def test_every_element_in_the_table_has_its_declarations():
         for name in ("atoms_vdw.inc", "atoms_covalent.inc", "atoms_cpk.inc")
     }
 
-    for element in pdb2pov.ELEMENTS:
+    for element in pypdb2pov.ELEMENTS:
         assert f"#declare Atom_{element.pov_suffix} " in solid or (
             f"#declare Atom_{element.pov_suffix}\n" in solid
         ), element.symbol
@@ -93,13 +93,63 @@ def test_every_element_in_the_table_has_its_declarations():
             assert f"#declare {element.symbol}_RAD" in text, f"{element.symbol} in {name}"
 
 
+def test_the_enclosing_radius_the_header_reports_is_the_padded_one(crambin_pdb):
+    """
+    :meth:`Structure.enclosing_radius` is the bare radius; the header comment
+    and the emitted float carry it grown by SPHERE_FUDGE so it clears the
+    outermost atom.  A caller sizing a depth budget needs to know which is
+    which, so the relationship is pinned here.
+    """
+    from pypdb2pov import SPHERE_FUDGE, find_bonds, prepare_structure, scene_text
+
+    structure, _ = read_structure(crambin_pdb, ParseOptions())
+    options = SceneOptions(name="crambin", timestamp=False)
+    prepare_structure(structure, options)
+
+    padded = structure.enclosing_radius() * (1.0 + SPHERE_FUDGE)
+    assert f"#declare crambin_enclosing_radius = {padded:.3f};" in scene_text(
+        structure, options
+    )
+    assert padded == pytest.approx(18.759, abs=5e-4)
+
+
+def test_the_two_version_numbers_mean_different_things():
+    """
+    ``__version__`` is this package's; ``PDB2POV_VERSION`` is the pdb2pov
+    release whose scenes it writes.  Conflating them would put a claim in
+    every scene header that the C program had changed when it had not.
+    """
+    import re
+
+    assert pypdb2pov.__version__ == pypdb2pov.PYPDB2POV_VERSION
+    assert pypdb2pov.PDB2POV_VERSION == "2.2"
+
+    pyproject = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "pyproject.toml"
+    )
+    declared = re.search(r'^version = "([^"]+)"', open(pyproject).read(), re.M)
+    assert declared and declared.group(1) == pypdb2pov.__version__
+
+
+def test_the_scene_header_names_both(crambin_pdb, tmp_path):
+    from pypdb2pov import convert
+
+    _, _, path = convert(crambin_pdb, str(tmp_path / "crambin"))
+    header = open(path).readline() and open(path).read().splitlines()[1]
+
+    assert header.startswith(
+        f"// Prepared by pypdb2pov {pypdb2pov.__version__} "
+        f"(pdb2pov {pypdb2pov.PDB2POV_VERSION})"
+    )
+
+
 def test_the_public_names_are_all_importable():
-    for name in pdb2pov.__all__:
-        assert hasattr(pdb2pov, name), name
+    for name in pypdb2pov.__all__:
+        assert hasattr(pypdb2pov, name), name
 
 
 def test_scene_options_pick_the_right_include_file():
-    from pdb2pov import RadiiSet
+    from pypdb2pov import RadiiSet
 
     assert RadiiSet.VDW.include_file == "atoms_vdw.inc"
     assert RadiiSet.COVALENT.include_file == "atoms_covalent.inc"

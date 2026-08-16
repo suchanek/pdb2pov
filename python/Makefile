@@ -1,5 +1,5 @@
 #
-# Makefile for the Python port of pdb2pov.
+# Makefile for pypdb2pov, the Python port of pdb2pov.
 #
 # Copyright (c) 1993-2026 Eric G. Suchanek, Ph.D.
 # Subject to the GNU License.
@@ -19,7 +19,7 @@
 PYTHON  ?= python3
 PYTEST  ?= $(PYTHON) -m pytest
 SRC      = src
-RUN      = PYTHONPATH=$(SRC) $(PYTHON) -m pdb2pov
+RUN      = PYTHONPATH=$(SRC) $(PYTHON) -m pypdb2pov
 
 .PHONY: all test check lint clean
 
@@ -58,9 +58,9 @@ check: test
 
 lint:
 	$(PYTHON) -m compileall -q $(SRC) tests
-	PYTHONPATH=$(SRC) $(PYTHON) -c "import pdb2pov; \
-	  [getattr(pdb2pov, n) for n in pdb2pov.__all__]; \
-	  print('OK:', len(pdb2pov.__all__), 'public names')"
+	PYTHONPATH=$(SRC) $(PYTHON) -c "import pypdb2pov; \
+	  [getattr(pypdb2pov, n) for n in pypdb2pov.__all__]; \
+	  print('OK:', len(pypdb2pov.__all__), 'public names')"
 
 clean:
 	rm -f check_py_*.pov check_py_*.inc

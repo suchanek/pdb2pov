@@ -1,4 +1,4 @@
-# pdb2pov (Python)
+# pypdb2pov
 
 **Converts Brookhaven PDB and PDBx/mmCIF atomic structure files into POV-Ray
 scenes.**
@@ -8,8 +8,22 @@ on its own: no dependencies beyond the standard library, the POV-Ray include
 files bundled inside the package, and nothing outside `python/` needed to
 build, test or copy it elsewhere.
 
-pdb2pov 2.2 — Copyright (c) 1993-2026 Eric G. Suchanek, Ph.D.
+pypdb2pov 0.1.0 — Copyright (c) 1993-2026 Eric G. Suchanek, Ph.D.
 Subject to the GNU License.
+
+> **Two version numbers, deliberately.** `pypdb2pov.__version__` is this
+> package's, and starts at 0.1.0 because the package is new.
+> `pypdb2pov.PDB2POV_VERSION` is 2.2 — the pdb2pov release whose scenes it
+> writes, tracked from `pdb2pov.h`. Scene headers name both:
+>
+> ```
+> // Prepared by pypdb2pov 0.1.0 (pdb2pov 2.2) from 1CRN.pdb on 2026-08-16 …
+> ```
+>
+> The distinction lets a port-only fix ship as 0.1.1 without a scene claiming
+> the thirty-year-old C program changed. **The name is also the reason there
+> is no collision**: the C program installs a binary called `pdb2pov`, and
+> this one installs `pypdb2pov`, so both can be on `PATH` at once.
 
 ---
 
@@ -39,7 +53,7 @@ pip install -e .          # or: pip install .
 ```
 
 Or don't install it at all — the package has no dependencies, so
-`PYTHONPATH=python/src python3 -m pdb2pov ...` works from a checkout, and
+`PYTHONPATH=python/src python3 -m pypdb2pov ...` works from a checkout, and
 copying `python/` somewhere else works too.
 
 Python 3.10 or newer.
@@ -49,11 +63,11 @@ Python 3.10 or newer.
 ## Usage
 
 ```
-pdb2pov InputFile OutputFile [options]
+pypdb2pov InputFile OutputFile [options]
 ```
 
 ```sh
-pdb2pov crambin crambin -s -h -b -d 1.5 -x 90
+pypdb2pov crambin crambin -s -h -b -d 1.5 -x 90
 ```
 
 Filenames may be given without extensions, as they always could — `.pdb` (or
@@ -117,7 +131,7 @@ only as PDBx/mmCIF, and `pdb2pov.c` cannot read a word of it. A ribosome, a
 capsid or a large complex had no route into a scene at all.
 
 ```sh
-pdb2pov 6xyz.cif.gz capsid -b -o
+pypdb2pov 6xyz.cif.gz capsid -b -o
 ```
 
 The reader handles the `_atom_site` loop with the syntax wwPDB files actually
@@ -231,7 +245,7 @@ buffers here, and no pre-count pass — files are read once.
 ### It is a library
 
 ```python
-from pdb2pov import convert
+from pypdb2pov import convert
 
 convert("1crn.pdb", "crambin", ball_stick=True, bond_threshold=1.9)
 ```
@@ -239,7 +253,7 @@ convert("1crn.pdb", "crambin", ball_stick=True, bond_threshold=1.9)
 or, with the pieces exposed:
 
 ```python
-from pdb2pov import (
+from pypdb2pov import (
     ParseOptions, SceneOptions, read_structure,
     find_bonds, prepare_structure, write_scene,
 )
@@ -266,7 +280,7 @@ Scenes reference the bundled include files by name, so POV-Ray needs the
 directory on its library path:
 
 ```sh
-povray +Icrambin.pov +W800 +H600 +A0.3 -D +L"$(pdb2pov --include-dir)"
+povray +Icrambin.pov +W800 +H600 +A0.3 -D +L"$(pypdb2pov --include-dir)"
 ```
 
 The includes are shipped inside the package, which is what makes this
@@ -288,7 +302,7 @@ or directly:
 python -m pytest
 ```
 
-105 tests. Those that compare against the C program build it first and skip
+112 tests. Those that compare against the C program build it first and skip
 cleanly when the C sources are not alongside the package — so a copy of
 `python/` on its own still tests green.
 
@@ -300,7 +314,7 @@ Everything here is deliberate. Nothing else differs.
 
 | Area | C 2.2 | Python |
 |------|-------|--------|
-| Scene output | — | byte-identical, except the `Prepared by` line, which also names the source file |
+| Scene output | — | byte-identical, except the `Prepared by` line, which also names this package and the source file |
 | Element inference with no element column | seven-letter first-character guess | column- and residue-aware, with ambiguity reported |
 | `.atm` element handling | first-character guess | the same inference as PDB; `--legacy-elements` restores the guess |
 | Formats | PDB, `.atm` | plus mmCIF, plus `.gz`/`.bz2`/`.xz`, plus stdin |
@@ -309,6 +323,7 @@ Everything here is deliberate. Nothing else differs.
 | Line length | 256 bytes, longer lines split | unbounded |
 | Atom count | pre-counted, fixed array | unbounded |
 | Exit statuses | 0/2/3/4/5/6 | the same |
+| Command name | `pdb2pov` | `pypdb2pov`, so both can share a `PATH` |
 
 The `-t` `.atm` path is the one place a *default* differs in output: the
 format has no element column, and the port infers elements there the same way

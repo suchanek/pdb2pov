@@ -11,7 +11,7 @@ programs' output to keep it that way.
 
 Scenes are POV-Ray 3.7 and depend on the bundled include files
 (``atoms2.inc`` and the radius sets) being on POV-Ray's library path.  See
-:func:`pdb2pov.include_dir`.
+:func:`pypdb2pov.include_dir`.
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ from .options import Backdrop, Ground, SceneOptions
 from .structure import Extents, Structure
 
 __all__ = [
+    "PYPDB2POV_VERSION",
     "PDB2POV_VERSION",
     "POV_VERSION",
     "BOND_RAD",
@@ -37,8 +38,14 @@ __all__ = [
     "write_scene",
 ]
 
-#: Kept in step with ``PDB2POV_VERSION`` in ``pdb2pov.h``: the scenes are the
-#: same scenes, and a header claiming otherwise would be misleading.
+#: This package's own version.  It moves independently of the number below,
+#: so a port-only fix does not have to claim the C program changed.
+PYPDB2POV_VERSION = "0.1.0"
+
+#: The pdb2pov release these scenes are those of, kept in step with
+#: ``PDB2POV_VERSION`` in ``pdb2pov.h``.  The scenes are byte-identical to
+#: that release's, and a header claiming otherwise would be misleading, so
+#: this tracks the C rather than the package.
 PDB2POV_VERSION = "2.2"
 
 #: POV-Ray language level the emitted scenes are written against.
@@ -53,7 +60,7 @@ SPHERE_FUDGE = 0.02
 CAMERA_HALF_ANGLE_DEG = 22.0
 LIGHT_HALF_ANGLE_DEG = 20.0
 
-_TOOL = "pdb2pov.py"
+_TOOL = "pypdb2pov"
 
 
 def pov_identifier(stem: str, fallback: str = "molecule") -> str:
@@ -234,7 +241,10 @@ def _write_header(
     # this one line, so the rest of the file can be compared byte for byte --
     # both against a previous run and against the C program.
     out.append("//\n")
-    out.append(f"// Prepared by {_TOOL} {PDB2POV_VERSION}{origin} on {stamp}\n")
+    out.append(
+        f"// Prepared by {_TOOL} {PYPDB2POV_VERSION} "
+        f"(pdb2pov {PDB2POV_VERSION}){origin} on {stamp}\n"
+    )
     out.append("// Author: Eric G. Suchanek, Ph.D.\n")
     out.append("//\n")
     out.append(f"//\tAtoms: {structure.natoms:4d}\n")
