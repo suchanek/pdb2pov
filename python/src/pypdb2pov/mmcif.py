@@ -150,7 +150,7 @@ def read_mmcif(
     Read the first ``_atom_site`` loop of an mmCIF stream.
 
     Returns the structure and the parse statistics, in the same shape as
-    :func:`pdb2pov.readers.read_pdb`, so callers do not care which format
+    :func:`pypdb2pov.readers.read_pdb`, so callers do not care which format
     they were handed.
     """
     opt = options or ParseOptions()

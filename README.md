@@ -8,12 +8,14 @@ Subject to the GNU License.
 Written in 1993 for the Amiga and UNIX. Modernised in 2026: the sources are
 prototyped C17, and the scenes it writes are POV-Ray 3.7.
 
-> **There is also a Python port**, in [`python/`](python/). It writes
-> byte-identical scenes from the same command lines, and adds what the C
-> cannot do: PDBx/mmCIF and compressed input, model selection, element
+> **There is also a Python port**, `pypdb2pov`, in [`python/`](python/). It
+> writes byte-identical scenes from the same command lines, and adds what the
+> C cannot do: PDBx/mmCIF and compressed input, model selection, element
 > inference that knows more than seven first letters, a linear-time bond
-> search, and a library API. See [`python/README.md`](python/README.md).
-> Everything below describes the C program.
+> search, and a library API. Its command is spelled `pypdb2pov`, so it can
+> share a `PATH` with the binary this Makefile builds. See
+> [`python/README.md`](python/README.md). Everything below describes the C
+> program.
 
 ---
 
@@ -383,10 +385,10 @@ existing scene, for a difference of well under a tenth of a degree.
 
 ## See also
 
-- [`python/`](python/) — the Python port. Same scenes from the same flags,
-  plus mmCIF, compressed input, model and conformer selection, a linear-time
-  bond search, and an importable API. Its test suite diffs its output against
-  this program's, so the two cannot drift apart.
+- [`python/`](python/) — `pypdb2pov`, the Python port. Same scenes from the
+  same flags, plus mmCIF, compressed input, model and conformer selection, a
+  linear-time bond search, and an importable API. Its test suite diffs its
+  output against this program's, so the two cannot drift apart.
 - [quiltwright](https://github.com/suchanek/quiltwright) — renders `.pov`
   scenes as multi-view quilts for Looking Glass holographic displays. Its
   `docs/pdb2pov.md` covers turning structures into holograms, and uses the

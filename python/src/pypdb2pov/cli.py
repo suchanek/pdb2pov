@@ -1,7 +1,7 @@
 """
 Command line interface.
 
-The 1993 grammar is preserved exactly -- ``pdb2pov InputFile OutputFile
+The 1993 grammar is preserved exactly -- ``pypdb2pov InputFile OutputFile
 [options]``, filenames without extensions, and every single-letter flag
 meaning what it has always meant.  In particular **-h is the checkered
 ground, not help**, which is why the parser is built with ``add_help=False``
@@ -44,14 +44,14 @@ EXIT_CANT_READ = 6
 
 _EPILOG = """\
 examples:
-  pdb2pov crambin crambin -s -h -b -d 1.5 -x 90
+  pypdb2pov crambin crambin -s -h -b -d 1.5 -x 90
       crambin.pdb -> crambin.pov, checkered ground and cloudy sky, rotated
       90 degrees about X, ball and stick with a 1.5 angstrom bond cutoff.
 
-  pdb2pov 4hhb.cif.gz hemoglobin -b -o --chain A
+  pypdb2pov 4hhb.cif.gz hemoglobin -b -o --chain A
       one subunit of a compressed mmCIF entry as a camera-less include.
 
-  pdb2pov 1crn - -b -o > scene.inc
+  pypdb2pov 1crn - -b -o > scene.inc
       write the scene to standard output.
 
 note:
@@ -62,12 +62,12 @@ note:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="pdb2pov",
+        prog="pypdb2pov",
         add_help=False,  # -h is the checkered ground
         allow_abbrev=False,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=(
-            f"pdb2pov {PDB2POV_VERSION} -- PDB and mmCIF to POV-Ray "
+            f"pypdb2pov {__version__} -- PDB and mmCIF to POV-Ray "
             f"{POV_VERSION} scene conversion."
         ),
         epilog=_EPILOG,
@@ -180,7 +180,7 @@ def build_parser() -> argparse.ArgumentParser:
     misc.add_argument("--quiet", dest="quiet", action="store_true",
                       help="only report problems")
     misc.add_argument("--version", action="version",
-                      version=f"pdb2pov {PDB2POV_VERSION} (python {__version__})")
+                      version=f"pypdb2pov {__version__} (pdb2pov {PDB2POV_VERSION} compatible)")
     misc.add_argument("--help", action="help", help="show this message and exit")
 
     return parser
@@ -285,12 +285,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if not args.input:
         parser.print_usage(sys.stderr)
-        print("pdb2pov: an input file is required", file=sys.stderr)
+        print("pypdb2pov: an input file is required", file=sys.stderr)
         return EXIT_PARSE_ARGS
 
     if not args.output and not args.info:
         parser.print_usage(sys.stderr)
-        print("pdb2pov: an output file is required (or --info)", file=sys.stderr)
+        print("pypdb2pov: an output file is required (or --info)", file=sys.stderr)
         return EXIT_PARSE_ARGS
 
     popt = _parse_options_from(args)
@@ -308,10 +308,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         structure, stats = read_structure(args.input, popt)
     except ParseError as exc:
-        print(f"pdb2pov: {exc}", file=sys.stderr)
+        print(f"pypdb2pov: {exc}", file=sys.stderr)
         return EXIT_NO_ATOMS
     except OSError as exc:
-        print(f"pdb2pov: can't read '{resolved}': {exc.strerror or exc}", file=sys.stderr)
+        print(f"pypdb2pov: can't read '{resolved}': {exc.strerror or exc}", file=sys.stderr)
         return EXIT_CANT_READ
 
     if not structure.atoms:
@@ -341,9 +341,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         say(f"Computing bonds: found {len(bonds)} bonds.")
         if not bonds:
             print(
-                "pdb2pov: no bonds found; try a larger -d threshold"
+                "pypdb2pov: no bonds found; try a larger -d threshold"
                 if sopt.bond_mode is BondMode.DISTANCE
-                else "pdb2pov: no bonds found; try a larger --bond-tolerance",
+                else "pypdb2pov: no bonds found; try a larger --bond-tolerance",
                 file=sys.stderr,
             )
             return EXIT_NO_BONDS
@@ -360,7 +360,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         write_scene(structure, sopt, path, bonds)
     except OSError as exc:
-        print(f"pdb2pov: can't write '{path}': {exc.strerror or exc}", file=sys.stderr)
+        print(f"pypdb2pov: can't write '{path}': {exc.strerror or exc}", file=sys.stderr)
         return EXIT_CANT_WRITE
 
     return EXIT_OK
@@ -368,24 +368,24 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def _no_atoms_message(stats, resolved: str, popt: ParseOptions) -> str:
     if stats.skipped_chain:
-        return f"pdb2pov: no atoms left after filtering to chain(s) '{popt.chains}'"
+        return f"pypdb2pov: no atoms left after filtering to chain(s) '{popt.chains}'"
     if stats.skipped_model:
         return (
-            f"pdb2pov: no atoms in model {popt.model}; the file has "
+            f"pypdb2pov: no atoms in model {popt.model}; the file has "
             f"{stats.models_seen or 'none'}"
         )
     if stats.skipped_altloc:
         return (
-            "pdb2pov: every atom was skipped as an alternate conformation.\n"
+            "pypdb2pov: every atom was skipped as an alternate conformation.\n"
             "         Column 17 should be blank or 'A'; check the record layout, "
             "or pass\n         --altloc first."
         )
     if stats.skipped_malformed:
         return (
-            f"pdb2pov: {stats.skipped_malformed} coordinate record(s) in "
+            f"pypdb2pov: {stats.skipped_malformed} coordinate record(s) in "
             f"<{resolved}> could not be parsed"
         )
-    return f"pdb2pov: no atoms found in <{resolved}>"
+    return f"pypdb2pov: no atoms found in <{resolved}>"
 
 
 def _print_info(structure, stats, stream) -> None:

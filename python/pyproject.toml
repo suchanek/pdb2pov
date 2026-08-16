@@ -3,8 +3,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pdb2pov"
-version = "2.2.0"
+name = "pypdb2pov"
+version = "0.1.0"
 description = "Convert PDB and PDBx/mmCIF atomic structures into POV-Ray scenes"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -28,7 +28,7 @@ dependencies = []
 dev = ["pytest>=7"]
 
 [project.scripts]
-pdb2pov = "pdb2pov.cli:main"
+pypdb2pov = "pypdb2pov.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/suchanek/pdb2pov"
@@ -37,7 +37,7 @@ Homepage = "https://github.com/suchanek/pdb2pov"
 where = ["src"]
 
 [tool.setuptools.package-data]
-pdb2pov = ["include/*.inc"]
+pypdb2pov = ["include/*.inc"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

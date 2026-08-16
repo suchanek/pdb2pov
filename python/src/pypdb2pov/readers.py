@@ -5,7 +5,7 @@ What these do that ``pdb2pov.c`` does not:
 
 * **mmCIF.**  Structures with more than 99,999 atoms or more than 62 chains
   are only distributed as mmCIF; the PDB format cannot express them.  See
-  :mod:`pdb2pov.mmcif`.
+  :mod:`pypdb2pov.mmcif`.
 * **Compression.**  ``.gz``, ``.bz2`` and ``.xz`` are opened transparently,
   which is how the wwPDB actually ships files.
 * **Models.**  ``MODEL``/``ENDMDL`` are understood, so an NMR ensemble
@@ -15,7 +15,7 @@ What these do that ``pdb2pov.c`` does not:
 * **No fixed limits.**  The C read into a 256-byte line buffer and a
   pre-counted fixed array; a longer line was silently split into two records.
 * **Element inference** that knows about column alignment and residue names
-  rather than seven first letters.  See :func:`pdb2pov.elements.infer_element`.
+  rather than seven first letters.  See :func:`pypdb2pov.elements.infer_element`.
 * **Diagnostics with line numbers**, and a strict mode that refuses to
   quietly drop records.
 
@@ -81,7 +81,7 @@ def resolve_input_path(path: str, fmt: InputFormat = InputFormat.AUTO) -> str:
     Find the file the user meant.
 
     ``pdb2pov`` has always taken a stem and appended an extension.  That is
-    kept -- ``pdb2pov 1crn out`` still reads ``1crn.pdb`` -- but a path that
+    kept -- ``pypdb2pov 1crn out`` still reads ``1crn.pdb`` -- but a path that
     exists as given is used as given, so ``1crn.cif.gz`` works too.  ``-``
     means standard input.
     """

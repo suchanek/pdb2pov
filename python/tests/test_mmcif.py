@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import os
 
-from pdb2pov import ALL_MODELS, ParseOptions, read_structure
-from pdb2pov.mmcif import read_mmcif, tokenise
+from pypdb2pov import ALL_MODELS, ParseOptions, read_structure
+from pypdb2pov.mmcif import read_mmcif, tokenise
 
 
 def test_reads_the_atom_site_loop(data_dir):
@@ -113,7 +113,7 @@ def test_the_real_1crn_atom_site_loop_matches_the_pdb_file(data_dir, crambin_pdb
     Reading it must give exactly what reading ``1CRN.pdb`` gives -- same
     atoms, same order, same numbers -- because they are the same entry.
     """
-    from pdb2pov import ParseOptions
+    from pypdb2pov import ParseOptions
 
     pdb, _ = read_structure(crambin_pdb, ParseOptions())
     cif, _ = read_structure(os.path.join(data_dir, "1crn_atom_site.cif"))
@@ -129,7 +129,7 @@ def test_the_real_1crn_atom_site_loop_matches_the_pdb_file(data_dir, crambin_pdb
 
 def test_the_same_entry_gives_the_same_scene_either_way(data_dir, crambin_pdb):
     """PDB in or mmCIF in, the scene that comes out is the same file."""
-    from pdb2pov import (
+    from pypdb2pov import (
         ParseOptions,
         SceneOptions,
         find_bonds,

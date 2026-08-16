@@ -5,8 +5,8 @@ from __future__ import annotations
 import math
 import random
 
-from pdb2pov import BondMode, ParseOptions, find_bonds, read_structure
-from pdb2pov.structure import Atom, Structure
+from pypdb2pov import BondMode, ParseOptions, find_bonds, read_structure
+from pypdb2pov.structure import Atom, Structure
 
 
 def brute_force(structure: Structure, threshold: float) -> list[tuple[int, int]]:
@@ -52,7 +52,7 @@ def random_structure(n: int, seed: int, box: float = 12.0) -> Structure:
             )
         )
     structure = Structure(atoms=atoms)
-    from pdb2pov import assign_types
+    from pypdb2pov import assign_types
 
     assign_types(structure)
     return structure
@@ -73,14 +73,14 @@ def test_the_first_atom_can_be_bonded():
             Atom(1.4, 0.0, 0.0, name="CA", element="C"),
         ]
     )
-    from pdb2pov import assign_types
+    from pypdb2pov import assign_types
 
     assign_types(structure)
     assert find_bonds(structure, 2.2) == [(0, 1)]
 
 
 def test_hydrogens_take_one_partner_and_never_each_other():
-    from pdb2pov import assign_types
+    from pypdb2pov import assign_types
 
     structure = Structure(
         atoms=[
@@ -97,7 +97,7 @@ def test_hydrogens_take_one_partner_and_never_each_other():
 
 def test_mercury_is_not_capped_like_a_hydrogen():
     """Hydrogen is decided by element, not by a name beginning with H."""
-    from pdb2pov import assign_types
+    from pypdb2pov import assign_types
 
     structure = Structure(
         atoms=[
@@ -113,7 +113,7 @@ def test_mercury_is_not_capped_like_a_hydrogen():
 
 def test_covalent_mode_finds_long_and_short_bonds_at_once():
     """One cutoff cannot cover a 1.1 A C-H and a 2.05 A S-S; radii can."""
-    from pdb2pov import assign_types
+    from pypdb2pov import assign_types
 
     structure = Structure(
         atoms=[
@@ -134,8 +134,8 @@ def test_covalent_mode_finds_long_and_short_bonds_at_once():
 
 
 def test_crambin_bond_count_is_unchanged(crambin_pdb):
-    from pdb2pov import prepare_structure
-    from pdb2pov.options import SceneOptions
+    from pypdb2pov import prepare_structure
+    from pypdb2pov.options import SceneOptions
 
     structure, _ = read_structure(crambin_pdb, ParseOptions())
     prepare_structure(structure, SceneOptions())
