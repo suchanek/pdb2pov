@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import re
 
 import pytest
 
@@ -201,3 +202,33 @@ def test_the_camera_frames_the_widest_half_extent():
     )
     expected = -widest / math.tan(22.0 / DEG_PER_RAD_CAM)
     assert f"location  <0, 0, {expected:.3f}>" in text
+
+
+@pytest.mark.parametrize("name", ["2hhb", "1crn", "4-hydroxy"])
+def test_a_caller_supplied_name_is_sanitised_into_a_legal_identifier(name):
+    """The CLI derives its name through ``pov_identifier``, but ``--name`` and
+    the library API hand ``SceneOptions`` whatever string the caller chose --
+    and a PDB ID is the obvious choice.  Every identifier the scene declares
+    has to be legal POV-Ray regardless of which door the name came in by.
+    """
+    structure = Structure(atoms=[Atom(0.0, 0.0, 0.0)])
+    options = SceneOptions(name=name, timestamp=False)
+    prepare_structure(structure, options)
+    text = scene_text(structure, options)
+
+    ident = pov_identifier(name)
+    assert f"#declare {ident} = " in text
+    for declared in re.findall(r"^#declare\s+(\S+)", text, re.M):
+        assert not declared[0].isdigit(), declared
+
+
+def test_sanitising_leaves_an_already_legal_name_byte_identical():
+    """``pov_identifier`` has to be idempotent, or applying it in the scene
+    writer would change the output of every existing CLI invocation.
+    """
+    structure = Structure(atoms=[Atom(0.0, 0.0, 0.0)])
+    once = scene_text(structure, SceneOptions(name="crambin", timestamp=False))
+    twice = scene_text(
+        structure, SceneOptions(name=pov_identifier("crambin"), timestamp=False)
+    )
+    assert once == twice

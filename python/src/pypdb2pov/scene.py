@@ -121,7 +121,14 @@ def scene_text(
     if options.ball_stick:
         atom_scale *= 0.3
 
-    ident = options.name
+    # Sanitise here rather than trusting the caller.  The CLI derives its name
+    # through pov_identifier(), but --name and the library API both reach this
+    # with whatever string was handed over, and a PDB ID is the obvious thing
+    # to hand over: SceneOptions(name="2hhb") emitted `#declare 2hhb_obj`,
+    # which POV-Ray rejects outright since identifiers may not begin with a
+    # digit.  pov_identifier() is idempotent, so names that were already legal
+    # are untouched and existing output stays byte-identical.
+    ident = pov_identifier(options.name)
 
     _write_header(out, structure, extents, sphere_rad, options)
 
