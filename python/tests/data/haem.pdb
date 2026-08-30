@@ -1,9 +1,0 @@
-REMARK   1 A haem fragment with no element column, plus a zinc ion.
-REMARK   1 The nitrogens are named NA..ND; a name-based guess calls
-REMARK   1 them sodium.  The iron is right-justified as the format says.
-HETATM    1  NA  HEM A   1       0.000   2.000   0.000  1.00  0.00
-HETATM    2  NB  HEM A   1       2.000   0.000   0.000  1.00  0.00
-HETATM    3 FE   HEM A   1       0.000   0.000   0.000  1.00  0.00
-ATOM      4  CD  GLU A   2       6.000   0.000   0.000  1.00  0.00
-HETATM    5 ZN    ZN A   3       9.000   0.000   0.000  1.00  0.00
-END

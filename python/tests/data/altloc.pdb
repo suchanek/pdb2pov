@@ -1,9 +1,0 @@
-REMARK   1 One residue, three side-chain atoms modelled twice.
-ATOM      1  CA  ARG A   1       0.000   0.000   0.000  1.00 10.00           C
-ATOM      2  CB AARG A   1       1.500   0.000   0.000  0.60 10.00           C
-ATOM      3  CB BARG A   1       1.500   0.300   0.000  0.40 10.00           C
-ATOM      4  CG AARG A   1       3.000   0.000   0.000  0.60 10.00           C
-ATOM      5  CG BARG A   1       3.000   0.300   0.000  0.40 10.00           C
-ATOM      6  CD AARG A   1       4.500   0.000   0.000  0.60 10.00           C
-ATOM      7  CD BARG A   1       4.500   0.300   0.000  0.40 10.00           C
-END
